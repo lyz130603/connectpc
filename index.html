@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>远程鼠标控制器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            touch-action: none;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .controlArea {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            touch-action: none;
+        }
+
+        /* 极简外圈 */
+        #joystickContainer {
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            touch-action: none;
+        }
+
+        /* 极简摇杆，无渐变、无多余阴影、无after伪元素 */
+        #joystick {
+            width: 70px;
+            height: 70px;
+            background: #ee5a52;
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            margin-left: -35px;
+            margin-top: -35px;
+            touch-action: none;
+        }
+
+        .controlPanel {
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+
+        .controlButtons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+            min-width: 80px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+        }
+
+        .configSection {
+            margin-top: 10px;
+            padding: 12px;
+            background-color: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .configSection strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
+            font-size: 13px;
+        }
+
+        .configSection input {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 6px 0;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.2s ease;
+            background-color: white;
+        }
+
+        .configSection input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .configSection .warning {
+            display: block;
+            margin-top: 8px;
+            color: #dc3545;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        #log {
+            height: 100px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 10px 15px;
+            font-size: 12px;
+            line-height: 1.5;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .log-item {
+            margin-bottom: 6px;
+            padding-left: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .log-error {
+            border-left-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .log-success {
+            border-left-color: #28a745;
+            color: #28a745;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 375px) {
+            #joystickContainer {
+                width: 160px;
+                height: 160px;
+            }
+            #joystick {
+                width: 56px;
+                height: 56px;
+                margin-left: -28px;
+                margin-top: -28px;
+            }
+            .btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        远程鼠标控制器
+    </div>
+
+    <div class="controlArea">
+        <div id="joystickContainer">
+            <div id="joystick"></div>
+        </div>
+    </div>
+
+    <div class="controlPanel">
+        <div class="controlButtons">
+            <button class="btn btn-primary" onclick="sendClickCommand('left')">左键</button>
+            <button class="btn btn-primary" onclick="sendClickCommand('right')">右键</button>
+            <button class="btn btn-primary" onclick="sendClickCommand('middle')">中键</button>
+            <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
+        </div>
+
+        <div class="configSection">
+            <strong>Gitee配置信息</strong>
+            <input type="text" id="giteeOwner" placeholder="Gitee用户名" value="你的Gitee用户名">
+            <input type="text" id="giteeRepo" placeholder="仓库名" value="你的仓库名">
+            <input type="text" id="giteePath" placeholder="文件路径" value="latest.json">
+            <input type="text" id="giteeToken" placeholder="Gitee私人令牌" value="你的Gitee令牌">
+            <span class="warning">⚠️ 重要提示：生产环境请通过后端中转Token，避免直接暴露在前端！</span>
+        </div>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        const joystickContainer = document.getElementById('joystickContainer');
+        const joystick = document.getElementById('joystick');
+        const log = document.getElementById('log');
+        
+        let isDragging = false;
+        let containerRect;
+        let lastCommandTime = 0;
+        const MIN_COMMAND_INTERVAL = 50;
+        const JOYSTICK_RADIUS = 60;
+        const SENSITIVITY = 2;
+
+        function initConfig() {
+            const savedConfig = localStorage.getItem('gitee-mouse-config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    document.getElementById('giteeOwner').value = config.owner || '';
+                    document.getElementById('giteeRepo').value = config.repo || '';
+                    document.getElementById('giteePath').value = config.path || 'latest.json';
+                    document.getElementById('giteeToken').value = config.token || '';
+                    addLog('配置已从本地存储加载', 'success');
+                } catch (e) {
+                    addLog('加载本地配置失败', 'error');
+                }
+            }
+        }
+
+        function saveConfig() {
+            const config = getConfig();
+            localStorage.setItem('gitee-mouse-config', JSON.stringify(config));
+            addLog('配置已保存到本地', 'success');
+        }
+
+        function addLog(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-item log-${type}`;
+            logItem.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(logItem);
+            if (log.children.length > 50) log.removeChild(log.firstChild);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            log.innerHTML = '';
+            addLog('日志已清空', 'success');
+        }
+
+        function getConfig() {
+            return {
+                owner: document.getElementById('giteeOwner').value.trim(),
+                repo: document.getElementById('giteeRepo').value.trim(),
+                path: document.getElementById('giteePath').value.trim(),
+                token: document.getElementById('giteeToken').value.trim()
+            };
+        }
+
+        function validateConfig(config) {
+            if (!config.owner) { addLog('请输入Gitee用户名', 'error'); return false; }
+            if (!config.repo) { addLog('请输入仓库名', 'error'); return false; }
+            if (!config.path) { addLog('请输入文件路径', 'error'); return false; }
+            if (!config.token) { addLog('请输入Gitee私人令牌', 'error'); return false; }
+            return true;
+        }
+
+        async function sendCommand(command) {
+            const config = getConfig();
+            if (!validateConfig(config)) return;
+            command.timestamp = Date.now();
+            if (command.timestamp - lastCommandTime < MIN_COMMAND_INTERVAL) return;
+            lastCommandTime = command.timestamp;
+
+            try {
+                const url = `https://gitee.com/api/v5/repos/${config.owner}/${config.repo}/contents/${config.path}`;
+                const headers = {
+                    'Authorization': `token ${config.token}`,
+                    'Content-Type': 'application/json'
+                };
+                let sha = null;
+                try {
+                    const res = await fetch(url, { headers });
+                    if (res.ok) {
+                        const d = await res.json();
+                        sha = d.sha;
+                    }
+                } catch (e) {}
+
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(command))));
+                const body = {
+                    message: `Mouse command: ${command.type}`,
+                    content: content,
+                    branch: 'main'
+                };
+                if (sha) body.sha = sha;
+
+                const res = await fetch(url, {
+                    method: sha ? 'PUT' : 'POST',
+                    headers,
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) throw new Error('请求失败');
+                return true;
+            } catch (e) {
+                addLog(`指令发送失败: ${e.message}`, 'error');
+                return false;
+            }
+        }
+
+        function sendClickCommand(button) {
+            sendCommand({
+                type: 'mouse_click',
+                button: button,
+                clicks: 1
+            }).then(success => {
+                if (success) addLog(`${button}键点击成功`, 'success');
+            });
+        }
+
+        // 极简拖动逻辑
+        function onStart(e) {
+            e.preventDefault();
+            isDragging = true;
+            containerRect = joystickContainer.getBoundingClientRect();
+        }
+
+        function onMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            let p = e.touches ? e.touches[0] : e;
+
+            const cx = containerRect.left + containerRect.width / 2;
+            const cy = containerRect.top + containerRect.height / 2;
+
+            let dx = p.clientX - cx;
+            let dy = p.clientY - cy;
+
+            const dist = Math.hypot(dx, dy);
+            if (dist > JOYSTICK_RADIUS) {
+                dx = dx / dist * JOYSTICK_RADIUS;
+                dy = dy / dist * JOYSTICK_RADIUS;
+            }
+
+            // 只用 left/top 定位，无任何transform
+            joystick.style.left = `calc(50% + ${dx}px)`;
+            joystick.style.top = `calc(50% + ${dy}px)`;
+
+            const mx = Math.round(dx * SENSITIVITY);
+            const my = Math.round(dy * SENSITIVITY);
+            if (mx || my) {
+                sendCommand({ type: 'mouse_move', deltaX: mx, deltaY: my });
+            }
+        }
+
+        function onEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            joystick.style.left = '50%';
+            joystick.style.top = '50%';
+        }
+
+        function bindEvents() {
+            // 绑定到大圆，按任意位置都能拖
+            joystickContainer.addEventListener('mousedown', onStart);
+            joystickContainer.addEventListener('touchstart', onStart, { passive: false });
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onMove, { passive: false });
+
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+            document.addEventListener('touchcancel', onEnd);
+
+            document.getElementById('giteeOwner').addEventListener('blur', saveConfig);
+            document.getElementById('giteeRepo').addEventListener('blur', saveConfig);
+            document.getElementById('giteePath').addEventListener('blur', saveConfig);
+            document.getElementById('giteeToken').addEventListener('blur', saveConfig);
+        }
+
+        function init() {
+            initConfig();
+            bindEvents();
+            addLog('远程鼠标控制器已就绪', 'success');
+            addLog('请完善Gitee配置信息', 'info');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
