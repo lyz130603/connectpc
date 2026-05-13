@@ -57,7 +57,7 @@
             touch-action: none;
         }
 
-        /* 极简摇杆 + 丝滑过渡 */
+        /* 极简摇杆，无渐变、无多余阴影、无after伪元素、无过渡动画 */
         #joystick {
             width: 70px;
             height: 70px;
@@ -69,7 +69,6 @@
             margin-left: -35px;
             margin-top: -35px;
             touch-action: none;
-            transition: left 0.05s ease-out, top 0.05s ease-out;
         }
 
         .controlPanel {
@@ -241,9 +240,9 @@
         let isDragging = false;
         let containerRect;
         let lastCommandTime = 0;
-        const MIN_COMMAND_INTERVAL = 30;  // 更快响应
+        const MIN_COMMAND_INTERVAL = 50;
         const JOYSTICK_RADIUS = 60;
-        const SENSITIVITY = 1.8;         // 更稳
+        const SENSITIVITY = 2;
 
         function initConfig() {
             const savedConfig = localStorage.getItem('gitee-mouse-config');
@@ -351,7 +350,7 @@
             });
         }
 
-        // 丝滑版拖动
+        // 原始可动拖动逻辑，不加任何花活
         function onStart(e) {
             e.preventDefault();
             isDragging = true;
@@ -413,7 +412,6 @@
             initConfig();
             bindEvents();
             addLog('远程鼠标控制器已就绪', 'success');
-            addLog('摇杆已优化为丝滑流畅版', 'info');
         }
 
         document.addEventListener('DOMContentLoaded', init);
