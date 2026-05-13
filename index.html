@@ -57,7 +57,7 @@
             touch-action: none;
         }
 
-        /* 极简摇杆，无渐变、无多余阴影、无after伪元素、无过渡动画 */
+        /* 极简摇杆，无渐变、无多余阴影、无after伪元素 */
         #joystick {
             width: 70px;
             height: 70px;
@@ -350,7 +350,7 @@
             });
         }
 
-        // 原始可动拖动逻辑，不加任何花活
+        // 极简拖动逻辑
         function onStart(e) {
             e.preventDefault();
             isDragging = true;
@@ -374,6 +374,7 @@
                 dy = dy / dist * JOYSTICK_RADIUS;
             }
 
+            // 只用 left/top 定位，无任何transform
             joystick.style.left = `calc(50% + ${dx}px)`;
             joystick.style.top = `calc(50% + ${dy}px)`;
 
@@ -392,6 +393,7 @@
         }
 
         function bindEvents() {
+            // 绑定到大圆，按任意位置都能拖
             joystickContainer.addEventListener('mousedown', onStart);
             joystickContainer.addEventListener('touchstart', onStart, { passive: false });
 
@@ -412,6 +414,7 @@
             initConfig();
             bindEvents();
             addLog('远程鼠标控制器已就绪', 'success');
+            addLog('请完善Gitee配置信息', 'info');
         }
 
         document.addEventListener('DOMContentLoaded', init);
