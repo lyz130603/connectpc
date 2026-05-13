@@ -235,7 +235,19 @@
         const radius = 60;
         const sens = 2;
         let lastTime = 0;
-        const interval = 50;
+
+        // ====================== 核心优化：发送间隔 ======================
+        const SEND_INTERVAL = 100; // 每100ms发送一次（和后端0.1秒匹配）
+        let canSend = true;
+
+        function throttleSend(func) {
+            if (!canSend) return;
+            canSend = false;
+            func();
+            setTimeout(() => canSend = true, SEND_INTERVAL);
+        }
+
+        let lastMoveCommand = null;
 
         // 配置相关
         function initConfig() {
@@ -288,10 +300,8 @@
         async function sendCommand(cmd){
             const c=getConfig();
             if(!validateConfig(c))return;
-            const now=Date.now();
-            if(now-lastTime<interval)return;
-            lastTime=now;
-            cmd.timestamp=now;
+            
+            cmd.timestamp = Date.now();
             try{
                 const url=`https://gitee.com/api/v5/repos/${c.owner}/${c.repo}/contents/${c.path}`;
                 const headers={Authorization:`token ${c.token}`,'Content-Type':'application/json'};
@@ -312,8 +322,7 @@
             sendCommand({type:'mouse_click',button:b,clicks:1}).then(s=>{if(s)addLog(`${b}键点击成功`,'success');})
         }
 
-        // ========== 终极可用摇杆逻辑 ==========
-        // 直接监听 容器的 touchstart / touchmove / touchend，不搞全局document
+        // ========== 摇杆逻辑（带节流） ==========
         joystickContainer.ontouchstart = function(e){
             e.preventDefault();
             isDragging = true;
@@ -323,15 +332,20 @@
             e.preventDefault();
             const touch = e.touches[0];
             const rect = joystickContainer.getBoundingClientRect();
-            // 相对容器内坐标
             const x = touch.clientX - rect.left - rect.width/2;
             const y = touch.clientY - rect.top - rect.height/2;
             const dist = Math.hypot(x,y);
             let dx=x, dy=y;
             if(dist>radius){ dx=x/dist*radius; dy=y/dist*radius; }
             joystick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            const mx=Math.round(dx*sens), my=Math.round(dy*sens);
-            if(mx||my) sendCommand({type:'mouse_move',deltaX:mx,deltaY:my});
+            
+            const mx=Math.round(dx*sens);
+            const my=Math.round(dy*sens);
+            lastMoveCommand = {type:'mouse_move', deltaX:mx, deltaY:my};
+            
+            throttleSend(() => {
+                if (lastMoveCommand) sendCommand(lastMoveCommand);
+            });
         }
         joystickContainer.ontouchend = function(){
             isDragging=false;
@@ -350,8 +364,14 @@
             let dx=x,dy=y;
             if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
             joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            const mx=Math.round(dx*sens),my=Math.round(dy*sens);
-            if(mx||my)sendCommand({type:'mouse_move',deltaX:mx,deltaY:my});
+            
+            const mx=Math.round(dx*sens);
+            const my=Math.round(dy*sens);
+            lastMoveCommand = {type:'mouse_move', deltaX:mx, deltaY:my};
+            
+            throttleSend(() => {
+                if (lastMoveCommand) sendCommand(lastMoveCommand);
+            });
         }
         document.onmouseup=function(){
             isDragging=false;
