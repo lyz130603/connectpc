@@ -31,7 +31,7 @@
             text-align: center;
             font-size: 16px;
             font-weight: 600;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: relative;
             z-index: 10;
         }
@@ -257,7 +257,7 @@
             <input type="text" id="giteeRepo" placeholder="仓库名" value="">
             <input type="text" id="giteePath" placeholder="文件路径" value="latest.json">
             <input type="text" id="giteeToken" placeholder="Gitee私人令牌" value="">
-            <span class="warning">⚠️ 重要提示：生产环境中转Token，避免直接暴露在前端！</span>
+            <span class="warning">⚠️ 重要提示：生产环境请通过后端中转Token，避免直接暴露在前端！</span>
         </div>
     </div>
 
@@ -271,63 +271,47 @@
         let isDragging = false;
         const radius = 60;
         const sens = 2;
-
-        // ========== 仅摇杆使用的延迟 ==========
         const JOYSTICK_DELAY = 180;
         let lastJoystickTime = 0;
 
-        // ====================== Cookie 操作函数 ======================
+        // Cookie 工具函数
         function setCookie(name, value, days = 365) {
             const d = new Date();
             d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
             document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/";
         }
-
         function getCookie(name) {
             const nameEQ = name + "=";
             const ca = document.cookie.split(';');
             for (let i = 0; i < ca.length; i++) {
                 let c = ca[i];
-                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+                while (c.charAt(0) === ' ') c = c.substring(1);
+                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length));
             }
             return null;
         }
 
-        // ====================== 配置保存到 Cookie ======================
+        // 配置加载与保存
         function initConfig() {
             const owner = getCookie("giteeOwner");
             const repo = getCookie("giteeRepo");
             const path = getCookie("giteePath");
             const token = getCookie("giteeToken");
-
-            if (owner) document.getElementById("giteeOwner").value = owner;
-            if (repo) document.getElementById("giteeRepo").value = repo;
-            if (path) document.getElementById("giteePath").value = path;
-            if (token) document.getElementById("giteeToken").value = token;
-            
+            if (owner) giteeOwner.value = owner;
+            if (repo) giteeRepo.value = repo;
+            if (path) giteePath.value = path;
+            if (token) giteeToken.value = token;
             addLog("配置已从 Cookie 加载", "success");
         }
-
         function saveConfig() {
-            const owner = document.getElementById("giteeOwner").value.trim();
-            const repo = document.getElementById("giteeRepo").value.trim();
-            const path = document.getElementById("giteePath").value.trim();
-            const token = document.getElementById("giteeToken").value.trim();
-
-            setCookie("giteeOwner", owner);
-            setCookie("giteeRepo", repo);
-            setCookie("giteePath", path);
-            setCookie("giteeToken", token);
-            
+            setCookie("giteeOwner", giteeOwner.value.trim());
+            setCookie("giteeRepo", giteeRepo.value.trim());
+            setCookie("giteePath", giteePath.value.trim());
+            setCookie("giteeToken", giteeToken.value.trim());
             addLog("配置已保存到 Cookie", "success");
         }
 
-        // ====================== 微调（无延迟） ======================
-        function fineTune(dx, dy) {
-            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy }, false);
-        }
-
+        // 日志输出（原版格式）
         function addLog(msg, t='info'){
             const d=document.createElement('div');
             d.className=`log-item log-${t}`;
@@ -336,18 +320,16 @@
             if(log.children.length>50) log.removeChild(log.firstChild);
             log.scrollTop=log.scrollHeight;
         }
-
         function clearLog(){log.innerHTML='';addLog('日志清空','success');}
 
         function getConfig() {
             return {
-                owner: document.getElementById('giteeOwner').value.trim(),
-                repo: document.getElementById('giteeRepo').value.trim(),
-                path: document.getElementById('giteePath').value.trim(),
-                token: document.getElementById('giteeToken').value.trim()
+                owner: giteeOwner.value.trim(),
+                repo: giteeRepo.value.trim(),
+                path: giteePath.value.trim(),
+                token: giteeToken.value.trim()
             };
         }
-
         function validateConfig(c){
             if(!c.owner){addLog('请填用户名','error');return false;}
             if(!c.repo){addLog('请填仓库名','error');return false;}
@@ -356,22 +338,21 @@
             return true;
         }
 
-        /**
-         * 发送指令
-         * @param {Object} cmd 指令
-         * @param {boolean} isJoystick 是否摇杆（true=延迟，false=无延迟）
-         */
+        // 发送指令 + 日志输出
         async function sendCommand(cmd, isJoystick = false){
-            // 只有摇杆才加延迟
             if(isJoystick){
                 const now = Date.now();
                 if (now - lastJoystickTime < JOYSTICK_DELAY) return;
                 lastJoystickTime = now;
             }
-
             const c=getConfig();
             if(!validateConfig(c))return;
-            
+
+            // 移动指令日志
+            if(cmd.type === 'mouse_move'){
+                addLog(`鼠标移动: X=${cmd.deltaX}, Y=${cmd.deltaY}`);
+            }
+
             cmd.timestamp = Date.now();
             try{
                 const url=`https://gitee.com/api/v5/repos/${c.owner}/${c.repo}/contents/${c.path}`;
@@ -384,61 +365,69 @@
                 const content=btoa(unescape(encodeURIComponent(JSON.stringify(cmd))));
                 const body={message:`Mouse ${cmd.type}`,content,branch:'main'};
                 if(sha)body.sha=sha;
-                const res=await fetch(url,{method:sha?'PUT':'POST',headers,body:JSON.stringify(body)});
-                if(!res.ok)throw new Error('请求失败');
+                await fetch(url,{method:sha?'PUT':'POST',headers,body:JSON.stringify(body)});
                 return true;
-            }catch(e){addLog(`发送失败:${e.message}`,'error');return false;}
+            }catch(e){
+                addLog(`发送失败:${e.message}`,'error');
+                return false;
+            }
         }
 
-        // 点击（无延迟）
+        // 点击指令 + 日志
         function sendClickCommand(b){
-            sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{if(s)addLog(`${b}键点击成功`,'success');})
+            sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{
+                if(s) addLog(`${b}键点击成功`,'success');
+            });
         }
 
-        // ========== 摇杆逻辑（带延迟） ==========
-        joystickContainer.ontouchstart = function(e){
-            e.preventDefault();
-            isDragging = true;
+        // 微调指令 + 日志
+        function fineTune(dx, dy) {
+            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy }, false);
         }
-        joystickContainer.ontouchmove = function(e){
-            if(!isDragging) return;
+
+        // 摇杆（带延迟 + 日志）
+        joystickContainer.ontouchstart = e=>{e.preventDefault();isDragging=true;}
+        joystickContainer.ontouchmove = e=>{
+            if(!isDragging)return;
             e.preventDefault();
-            const touch = e.touches[0];
-            const rect = joystickContainer.getBoundingClientRect();
-            const x = touch.clientX - rect.left - rect.width/2;
-            const y = touch.clientY - rect.top - rect.height/2;
-            const dist = Math.hypot(x,y);
-            let dx=x, dy=y;
-            if(dist>radius){ dx=x/dist*radius; dy=y/dist*radius; }
-            joystick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            
-            const mx=Math.round(dx*sens);
-            const my=Math.round(dy*sens);
-            sendCommand({type:'mouse_move', deltaX:mx, deltaY:my}, true); // 摇杆传true开启延迟
+            const t=e.touches[0];
+            const r=joystickContainer.getBoundingClientRect();
+            const x=t.clientX-r.left-r.width/2;
+            const y=t.clientY-r.top-r.height/2;
+            const dist=Math.hypot(x,y);
+            let dx=x,dy=y;
+            if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
+            joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            sendCommand({
+                type:'mouse_move',
+                deltaX:Math.round(dx*sens),
+                deltaY:Math.round(dy*sens)
+            }, true);
         }
-        joystickContainer.ontouchend = function(){
+        joystickContainer.ontouchend = ()=>{
             isDragging=false;
             joystick.style.transform='translate(-50%,-50%)';
         }
         joystickContainer.ontouchcancel=joystickContainer.ontouchend;
 
-        // 桌面端兼容（摇杆带延迟）
-        joystickContainer.onmousedown=function(e){isDragging=true;}
-        document.onmousemove=function(e){
+        // 桌面端兼容
+        joystickContainer.onmousedown=()=>isDragging=true;
+        document.onmousemove=e=>{
             if(!isDragging)return;
-            const rect=joystickContainer.getBoundingClientRect();
-            const x=e.clientX-rect.left-rect.width/2;
-            const y=e.clientY-rect.top-rect.height/2;
+            const r=joystickContainer.getBoundingClientRect();
+            const x=e.clientX-r.left-r.width/2;
+            const y=e.clientY-r.top-r.height/2;
             const dist=Math.hypot(x,y);
             let dx=x,dy=y;
             if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
             joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            
-            const mx=Math.round(dx*sens);
-            const my=Math.round(dy*sens);
-            sendCommand({type:'mouse_move', deltaX:mx, deltaY:my}, true);
+            sendCommand({
+                type:'mouse_move',
+                deltaX:Math.round(dx*sens),
+                deltaY:Math.round(dy*sens)
+            }, true);
         }
-        document.onmouseup=function(){
+        document.onmouseup=()=>{
             isDragging=false;
             joystick.style.transform='translate(-50%,-50%)';
         }
@@ -446,13 +435,12 @@
         // 初始化
         function init(){
             initConfig();
-            document.getElementById('giteeOwner').onblur=saveConfig;
-            document.getElementById('giteeRepo').onblur=saveConfig;
-            document.getElementById('giteePath').onblur=saveConfig;
-            document.getElementById('giteeToken').onblur=saveConfig;
+            giteeOwner.onblur=saveConfig;
+            giteeRepo.onblur=saveConfig;
+            giteePath.onblur=saveConfig;
+            giteeToken.onblur=saveConfig;
             addLog('控制器就绪','success');
         }
-
         init();
     </script>
 </body>
