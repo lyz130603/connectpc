@@ -14,7 +14,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #76baa2 100%);
             color: #333;
             overflow: hidden;
             height: 100vh;
@@ -47,7 +47,6 @@
             gap: 12px;
         }
 
-        /* 微调按钮组 */
         .fine-tune {
             display: grid;
             grid-template-areas:
@@ -131,7 +130,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #76baa2 100%);
             color: white;
         }
 
@@ -236,8 +235,6 @@
         <div id="joystickContainer">
             <div id="joystick"></div>
         </div>
-
-        <!-- 微调按钮 -->
         <div class="fine-tune">
             <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
             <button class="btn-left" onclick="fineTune(-5,0)">←</button>
@@ -256,10 +253,10 @@
 
         <div class="configSection">
             <strong>Gitee配置信息</strong>
-            <input type="text" id="giteeOwner" placeholder="Gitee用户名" value="你的Gitee用户名">
-            <input type="text" id="giteeRepo" placeholder="仓库名" value="你的仓库名">
+            <input type="text" id="giteeOwner" placeholder="Gitee用户名" value="">
+            <input type="text" id="giteeRepo" placeholder="仓库名" value="">
             <input type="text" id="giteePath" placeholder="文件路径" value="latest.json">
-            <input type="text" id="giteeToken" placeholder="Gitee私人令牌" value="你的Gitee令牌">
+            <input type="text" id="giteeToken" placeholder="Gitee私人令牌" value="">
             <span class="warning">⚠️ 重要提示：生产环境请通过后端中转Token，避免直接暴露在前端！</span>
         </div>
     </div>
@@ -274,12 +271,57 @@
         let isDragging = false;
         const radius = 60;
         const sens = 2;
-        
-        // ====================== 全局发送延迟（你要的慢一点） ======================
-        const COMMAND_DELAY = 180;  // 180ms 延迟，电脑完全跟得上
+        const COMMAND_DELAY = 180;
         let lastCommandTime = 0;
 
-        // ====================== 微调函数 ======================
+        // ====================== Cookie 操作函数 ======================
+        function setCookie(name, value, days = 365) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            }
+            return null;
+        }
+
+        // ====================== 配置保存到 Cookie ======================
+        function initConfig() {
+            const owner = getCookie("giteeOwner");
+            const repo = getCookie("giteeRepo");
+            const path = getCookie("giteePath");
+            const token = getCookie("giteeToken");
+
+            if (owner) document.getElementById("giteeOwner").value = owner;
+            if (repo) document.getElementById("giteeRepo").value = repo;
+            if (path) document.getElementById("giteePath").value = path;
+            if (token) document.getElementById("giteeToken").value = token;
+            
+            addLog("配置已从 Cookie 加载", "success");
+        }
+
+        function saveConfig() {
+            const owner = document.getElementById("giteeOwner").value.trim();
+            const repo = document.getElementById("giteeRepo").value.trim();
+            const path = document.getElementById("giteePath").value.trim();
+            const token = document.getElementById("giteeToken").value.trim();
+
+            setCookie("giteeOwner", owner);
+            setCookie("giteeRepo", repo);
+            setCookie("giteePath", path);
+            setCookie("giteeToken", token);
+            
+            addLog("配置已保存到 Cookie", "success");
+        }
+
+        // ====================== 微调 ======================
         function fineTune(dx, dy) {
             const now = Date.now();
             if (now - lastCommandTime < COMMAND_DELAY) return;
@@ -287,30 +329,6 @@
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
         }
 
-        // 配置相关
-        function initConfig() {
-            const saved = localStorage.getItem('gitee-mouse-config');
-            if (saved) {
-                try {
-                    const c = JSON.parse(saved);
-                    document.getElementById('giteeOwner').value = c.owner || '';
-                    document.getElementById('giteeRepo').value = c.repo || '';
-                    document.getElementById('giteePath').value = c.path || 'latest.json';
-                    document.getElementById('giteeToken').value = c.token || '';
-                    addLog('配置已加载', 'success');
-                } catch (e) {}
-            }
-        }
-        function saveConfig() {
-            const c = {
-                owner: document.getElementById('giteeOwner').value.trim(),
-                repo: document.getElementById('giteeRepo').value.trim(),
-                path: document.getElementById('giteePath').value.trim(),
-                token: document.getElementById('giteeToken').value.trim()
-            };
-            localStorage.setItem('gitee-mouse-config', JSON.stringify(c));
-            addLog('配置已保存', 'success');
-        }
         function addLog(msg, t='info'){
             const d=document.createElement('div');
             d.className=`log-item log-${t}`;
@@ -319,15 +337,18 @@
             if(log.children.length>50) log.removeChild(log.firstChild);
             log.scrollTop=log.scrollHeight;
         }
+
         function clearLog(){log.innerHTML='';addLog('日志清空','success');}
-        function getConfig(){
+
+        function getConfig() {
             return {
-                owner:document.getElementById('giteeOwner').value.trim(),
-                repo:document.getElementById('giteeRepo').value.trim(),
-                path:document.getElementById('giteePath').value.trim(),
-                token:document.getElementById('giteeToken').value.trim()
-            }
+                owner: document.getElementById('giteeOwner').value.trim(),
+                repo: document.getElementById('giteeRepo').value.trim(),
+                path: document.getElementById('giteePath').value.trim(),
+                token: document.getElementById('giteeToken').value.trim()
+            };
         }
+
         function validateConfig(c){
             if(!c.owner){addLog('请填用户名','error');return false;}
             if(!c.repo){addLog('请填仓库名','error');return false;}
@@ -335,8 +356,8 @@
             if(!c.token){addLog('请填令牌','error');return false;}
             return true;
         }
+
         async function sendCommand(cmd){
-            // 全局延迟控制
             const now = Date.now();
             if (now - lastCommandTime < COMMAND_DELAY) return;
             lastCommandTime = now;
@@ -361,6 +382,7 @@
                 return true;
             }catch(e){addLog(`发送失败:${e.message}`,'error');return false;}
         }
+
         function sendClickCommand(b){
             sendCommand({type:'mouse_click',button:b,clicks:1}).then(s=>{if(s)addLog(`${b}键点击成功`,'success');})
         }
@@ -422,6 +444,7 @@
             document.getElementById('giteeToken').onblur=saveConfig;
             addLog('控制器就绪','success');
         }
+
         init();
     </script>
 </body>
