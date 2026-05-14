@@ -44,7 +44,36 @@
             justify-content: center;
             padding: 20px;
             touch-action: none;
+            gap: 12px;
         }
+
+        /* 微调按钮组 */
+        .fine-tune {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left down right";
+            gap: 8px;
+            position: absolute;
+            right: 20px;
+        }
+        .fine-tune button {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            font-size: 18px;
+            touch-action: none;
+        }
+        .fine-tune button:active {
+            background: rgba(255,255,255,0.5);
+        }
+        .btn-up { grid-area: up; }
+        .btn-left { grid-area: left; }
+        .btn-down { grid-area: down; }
+        .btn-right { grid-area: right; }
 
         #joystickContainer {
             width: 200px;
@@ -192,6 +221,9 @@
                 padding: 8px 12px;
                 font-size: 13px;
             }
+            .fine-tune {
+                right: 10px;
+            }
         }
     </style>
 </head>
@@ -203,6 +235,14 @@
     <div class="controlArea">
         <div id="joystickContainer">
             <div id="joystick"></div>
+        </div>
+
+        <!-- 微调按钮 -->
+        <div class="fine-tune">
+            <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
+            <button class="btn-left" onclick="fineTune(-5,0)">←</button>
+            <button class="btn-down" onclick="fineTune(0,5)">↓</button>
+            <button class="btn-right" onclick="fineTune(5,0)">→</button>
         </div>
     </div>
 
@@ -234,20 +274,18 @@
         let isDragging = false;
         const radius = 60;
         const sens = 2;
-        let lastTime = 0;
+        
+        // ====================== 全局发送延迟（你要的慢一点） ======================
+        const COMMAND_DELAY = 180;  // 180ms 延迟，电脑完全跟得上
+        let lastCommandTime = 0;
 
-        // ====================== 核心优化：发送间隔 ======================
-        const SEND_INTERVAL = 100; // 每100ms发送一次（和后端0.1秒匹配）
-        let canSend = true;
-
-        function throttleSend(func) {
-            if (!canSend) return;
-            canSend = false;
-            func();
-            setTimeout(() => canSend = true, SEND_INTERVAL);
+        // ====================== 微调函数 ======================
+        function fineTune(dx, dy) {
+            const now = Date.now();
+            if (now - lastCommandTime < COMMAND_DELAY) return;
+            lastCommandTime = now;
+            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
         }
-
-        let lastMoveCommand = null;
 
         // 配置相关
         function initConfig() {
@@ -298,6 +336,11 @@
             return true;
         }
         async function sendCommand(cmd){
+            // 全局延迟控制
+            const now = Date.now();
+            if (now - lastCommandTime < COMMAND_DELAY) return;
+            lastCommandTime = now;
+
             const c=getConfig();
             if(!validateConfig(c))return;
             
@@ -322,7 +365,7 @@
             sendCommand({type:'mouse_click',button:b,clicks:1}).then(s=>{if(s)addLog(`${b}键点击成功`,'success');})
         }
 
-        // ========== 摇杆逻辑（带节流） ==========
+        // ========== 摇杆逻辑 ==========
         joystickContainer.ontouchstart = function(e){
             e.preventDefault();
             isDragging = true;
@@ -341,11 +384,7 @@
             
             const mx=Math.round(dx*sens);
             const my=Math.round(dy*sens);
-            lastMoveCommand = {type:'mouse_move', deltaX:mx, deltaY:my};
-            
-            throttleSend(() => {
-                if (lastMoveCommand) sendCommand(lastMoveCommand);
-            });
+            sendCommand({type:'mouse_move', deltaX:mx, deltaY:my});
         }
         joystickContainer.ontouchend = function(){
             isDragging=false;
@@ -367,11 +406,7 @@
             
             const mx=Math.round(dx*sens);
             const my=Math.round(dy*sens);
-            lastMoveCommand = {type:'mouse_move', deltaX:mx, deltaY:my};
-            
-            throttleSend(() => {
-                if (lastMoveCommand) sendCommand(lastMoveCommand);
-            });
+            sendCommand({type:'mouse_move', deltaX:mx, deltaY:my});
         }
         document.onmouseup=function(){
             isDragging=false;
