@@ -354,6 +354,17 @@
             <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
         </div>
 
+        <!-- 新增：打开文件/程序功能 -->
+        <div class="configSection" style="margin-top:12px; background:rgba(76, 175, 80, 0.1); border-color:rgba(76, 175, 80, 0.3);">
+            <strong>📂 远程打开文件/程序</strong>
+            <input type="text" id="filePath" placeholder="输入完整路径，例如：C:\Windows\notepad.exe" value="">
+            <div style="display:flex; gap:8px; margin-top:6px;">
+                <button class="btn" style="background:#28a745; color:white; flex:1;" onclick="sendOpenFile()">打开文件/程序</button>
+                <button class="btn" style="background:#ff9800; color:white; flex:1;" onclick="document.getElementById('filePath').value=''">清空</button>
+            </div>
+            <span class="warning" style="color:#ff5722;">⚠️ 路径必须是电脑上真实存在的绝对路径</span>
+        </div>
+
         <div class="configSection">
             <strong>Gitee配置信息</strong>
             <input type="text" id="giteeOwner" placeholder="Gitee用户名" value="">
@@ -369,7 +380,7 @@
     <!-- 全屏完整版虚拟键盘 -->
     <div class="virtual-keyboard-wrap" id="virtualKeyboard">
         <div class="vk-header">
-            <span>全屏屏幕键盘（修饰键点按锁定）</span>
+            <span>全屏屏幕键盘</span>
             <button class="vk-close" onclick="closeVirtualKeyboard()">×</button>
         </div>
 
@@ -583,6 +594,21 @@
             }
         }
 
+        // 新增：打开文件功能
+        function sendOpenFile() {
+            const path = document.getElementById('filePath').value.trim();
+            if (!path) {
+                addLog('请输入文件路径', 'error');
+                return;
+            }
+            sendCommand({
+                type: 'open_file',
+                filePath: path
+            }).then(s => {
+                if (s) addLog(`已发送打开指令: ${path}`, 'success');
+            });
+        }
+
         function sendClickCommand(b){
             sendCommand({type:'mouse_click',button:b,clicks:1}).then(s=>{
                 if(s) addLog(`${b}键点击成功`,'success');
@@ -678,6 +704,7 @@
             let mods = Array.from(lockedModifiers);
             const order = ['ctrl','shift','alt','win'];
             mods.sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+            let key = keyName.toLowerCase();
 
             sendCommand({
                 type:'key_press',
