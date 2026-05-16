@@ -47,17 +47,18 @@
             gap: 12px;
         }
 
-        /* 精确打开文件/文件夹面板 - 摇杆左侧 */
+        /* 精确打开文件/文件夹面板 - 竖屏平板专用：往右移动，不重叠 */
         .openItemPanel {
             position: absolute;
-            left: 20px;
+            left: 140px; /* 👈 这里改大了，往右挪了很多 */
             top: 20px;
-            width: 175px;
+            width: 180px;
             padding: 10px;
             background:rgba(76, 175, 80, 0.15);
             border:1px solid rgba(76, 175, 80, 0.4);
             border-radius: 10px;
             backdrop-filter: blur(6px);
+            z-index: 5;
         }
         .openItemPanel strong {
             display:block;
@@ -296,9 +297,9 @@
                 left: 10px;
             }
             .openItemPanel {
-                left:10px;
+                left: 120px;
                 top:10px;
-                width:155px;
+                width:160px;
             }
         }
 
