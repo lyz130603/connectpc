@@ -250,7 +250,12 @@
                 font-size: 13px;
             }
             .sideKeysWrap {
-                right: 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                position: absolute;
+                left: 20px;
+                align-items: center;
             }
         }
     </style>
@@ -274,7 +279,7 @@
                 <button class="btn-right" onclick="fineTune(5,0)">→</button>
             </div>
             <div class="sysBtns">
-                <button class="btn-close-win" onclick="sendCloseWindow()">关闭</button>
+                <button class="btn-close-win" onclick="sendCloseWindow()">关闭窗口</button>
                 <button class="btn-shutdown" onclick="sendShutdown()">关机</button>
             </div>
         </div>
