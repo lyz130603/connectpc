@@ -252,7 +252,7 @@
             }
         }
 
-        /* ========== 【平板专用·放大版】虚拟屏幕键盘样式 ========== */
+        /* ========== 平板放大版虚拟键盘 ========== */
         .virtual-keyboard-wrap {
             position: fixed;
             top: 50%;
@@ -264,7 +264,6 @@
             box-shadow: 0 8px 30px rgba(0,0,0,0.4);
             z-index: 9999;
             display: none;
-            /* 平板放大：宽度占屏幕85%，适配横屏 */
             width: 85vw;
         }
         .vk-header {
@@ -289,26 +288,31 @@
         }
         .vk-row {
             display: flex;
-            gap: 3px; /* 缝隙极小，仅留一点点 */
+            gap: 3px;
             margin-bottom: 3px;
         }
         .vk-key {
-            min-width: 58px;  /* 按键宽度放大 */
-            height: 58px;     /* 按键高度放大，好按 */
+            min-width: 58px;
+            height: 58px;
             background: #444;
             color: #fff;
             border: none;
             border-radius: 6px;
-            font-size: 18px;   /* 字体放大 */
+            font-size: 18px;
             cursor: pointer;
             flex: 1;
             max-width: 70px;
+            transition: background 0.2s;
+        }
+        /* 长按锁定的按键高亮 */
+        .vk-key.locked {
+            background: #28a745 !important;
         }
         .vk-key:active {
             background: #666;
         }
         .vk-space {
-            flex: 4; /* 空格拉长，接近真实键盘 */
+            flex: 4;
             max-width: unset;
         }
     </style>
@@ -361,10 +365,10 @@
 
     <div id="log"></div>
 
-    <!-- ========== 虚拟屏幕键盘弹窗 ========== -->
+    <!-- 虚拟键盘 -->
     <div class="virtual-keyboard-wrap" id="virtualKeyboard">
         <div class="vk-header">
-            <span>屏幕键盘</span>
+            <span>屏幕键盘（修饰键点按锁定）</span>
             <button class="vk-close" onclick="closeVirtualKeyboard()">×</button>
         </div>
         <div class="vk-row">
@@ -409,7 +413,7 @@
             <button class="vk-key" onclick="sendKey('enter')">回车</button>
         </div>
         <div class="vk-row">
-            <button class="vk-key" onclick="sendKey('shift')">Shift</button>
+            <button class="vk-key mod-key" data-key="shift" onclick="toggleModifier('shift', this)">Shift</button>
             <button class="vk-key" onclick="sendKey('z')">z</button>
             <button class="vk-key" onclick="sendKey('x')">x</button>
             <button class="vk-key" onclick="sendKey('c')">c</button>
@@ -422,9 +426,9 @@
             <button class="vk-key" onclick="sendKey('/')">/</button>
         </div>
         <div class="vk-row">
-            <button class="vk-key" onclick="sendKey('ctrl')">Ctrl</button>
-            <button class="vk-key" onclick="sendKey('win')">Win</button>
-            <button class="vk-key" onclick="sendKey('alt')">Alt</button>
+            <button class="vk-key mod-key" data-key="ctrl" onclick="toggleModifier('ctrl', this)">Ctrl</button>
+            <button class="vk-key mod-key" data-key="win" onclick="toggleModifier('win', this)">Win</button>
+            <button class="vk-key mod-key" data-key="alt" onclick="toggleModifier('alt', this)">Alt</button>
             <button class="vk-key vk-space" onclick="sendKey('space')">空格</button>
             <button class="vk-key" onclick="sendKey('left')">←</button>
             <button class="vk-key" onclick="sendKey('down')">↓</button>
@@ -444,7 +448,14 @@
         const JOYSTICK_DELAY = 200;
         let lastJoystickTime = 0;
 
-        // Cookie 工具函数
+        // 1. 按键防抖延迟：300ms，解决发送太快
+        const KEY_SEND_DELAY = 300;
+        let lastKeySendTime = 0;
+
+        // 2. 修饰键锁定状态：shift/ctrl/alt/win
+        let lockedModifiers = new Set();
+
+        // Cookie工具
         function setCookie(name, value, days = 365) {
             const d = new Date();
             d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -461,7 +472,7 @@
             return null;
         }
 
-        // 配置加载与保存
+        // 配置
         function initConfig() {
             const owner = getCookie("giteeOwner");
             const repo = getCookie("giteeRepo");
@@ -481,7 +492,7 @@
             addLog("配置已保存到 Cookie", "success");
         }
 
-        // 日志输出（原版格式）
+        // 日志
         function addLog(msg, t='info'){
             const d=document.createElement('div');
             d.className=`log-item log-${t}`;
@@ -508,7 +519,7 @@
             return true;
         }
 
-        // 发送指令 + 日志输出
+        // 发送指令
         async function sendCommand(cmd, isJoystick = false){
             if(isJoystick){
                 const now = Date.now();
@@ -518,7 +529,6 @@
             const c=getConfig();
             if(!validateConfig(c))return;
 
-            // 移动指令日志
             if(cmd.type === 'mouse_move'){
                 addLog(`鼠标移动: X=${cmd.deltaX}, Y=${cmd.deltaY}`);
             }
@@ -543,35 +553,29 @@
             }
         }
 
-        // 点击指令 + 日志
+        // 鼠标点击
         function sendClickCommand(b){
             sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{
                 if(s) addLog(`${b}键点击成功`,'success');
             });
         }
 
-        // 最小化
+        // 最小化最大化关闭
         function sendMinimize(){
             sendCommand({type:'key_press', key:'minimize'}, false).then(s=>{
                 if(s) addLog('已发送窗口最小化指令','success');
             });
         }
-
-        // 最大化
         function sendMaximize(){
             sendCommand({type:'key_press', key:'maximize'}, false).then(s=>{
                 if(s) addLog('已发送窗口最大化指令','success');
             });
         }
-
-        // 关闭窗口 Alt+F4
         function sendCloseWindow(){
             sendCommand({type:'key_press', key:'altf4'}, false).then(s=>{
                 if(s) addLog('已发送关闭窗口指令','success');
             });
         }
-
-        // 关机指令
         function sendShutdown(){
             if(!confirm('确定要远程关机吗？')) return;
             sendCommand({type:'system', action:'shutdown'}, false).then(s=>{
@@ -579,12 +583,11 @@
             });
         }
 
-        // 微调指令 + 日志
         function fineTune(dx, dy) {
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy }, false);
         }
 
-        // 摇杆（带延迟 + 日志）
+        // 摇杆
         joystickContainer.ontouchstart = e=>{e.preventDefault();isDragging=true;}
         joystickContainer.ontouchmove = e=>{
             if(!isDragging)return;
@@ -609,7 +612,6 @@
         }
         joystickContainer.ontouchcancel=joystickContainer.ontouchend;
 
-        // 桌面端兼容
         joystickContainer.onmousedown=()=>isDragging=true;
         document.onmousemove=e=>{
             if(!isDragging)return;
@@ -631,7 +633,44 @@
             joystick.style.transform='translate(-50%,-50%)';
         }
 
-        // ========== 虚拟键盘控制 ==========
+        // ========== 核心：修饰键锁定（Shift/Ctrl/Alt/Win 长按） ==========
+        function toggleModifier(key, btnEl) {
+            const now = Date.now();
+            if (now - lastKeySendTime < KEY_SEND_DELAY) return;
+            lastKeySendTime = now;
+
+            if (lockedModifiers.has(key)) {
+                // 松开
+                lockedModifiers.delete(key);
+                btnEl.classList.remove('locked');
+                sendCommand({type:'key_release', key: key}, false);
+                addLog(`松开修饰键: ${key}`,'info');
+            } else {
+                // 按住
+                lockedModifiers.add(key);
+                btnEl.classList.add('locked');
+                sendCommand({type:'key_down', key: key}, false);
+                addLog(`按住修饰键: ${key}`,'info');
+            }
+        }
+
+        // ========== 普通按键发送（带延迟 + 自动带上已锁定修饰键） ==========
+        function sendKey(keyName){
+            const now = Date.now();
+            // 防抖延迟，避免发太快
+            if (now - lastKeySendTime < KEY_SEND_DELAY) return;
+            lastKeySendTime = now;
+
+            sendCommand({
+                type:'key_press',
+                key: keyName,
+                modifiers: Array.from(lockedModifiers) // 把当前按住的修饰键一起发给后端
+            }, false).then(s=>{
+                if(s) addLog(`按下按键: ${keyName} ${lockedModifiers.size ? "(含修饰键:"+Array.from(lockedModifiers).join(',')+")" : ""}`,'success');
+            });
+        }
+
+        // 键盘开关
         const vkEl = document.getElementById('virtualKeyboard');
         function openVirtualKeyboard(){
             vkEl.style.display = 'block';
@@ -639,16 +678,15 @@
         }
         function closeVirtualKeyboard(){
             vkEl.style.display = 'none';
-            addLog('关闭屏幕键盘','info');
-        }
-        // 发送按键：统一用 key_press，真实按下按键
-        function sendKey(keyName){
-            sendCommand({type:'key_press', key: keyName}, false).then(s=>{
-                if(s) addLog(`按下按键: ${keyName}`,'success');
+            // 关闭键盘时，自动松开所有修饰键
+            lockedModifiers.forEach(k=>{
+                sendCommand({type:'key_release', key: k}, false);
             });
+            lockedModifiers.clear();
+            document.querySelectorAll('.mod-key').forEach(el=>el.classList.remove('locked'));
+            addLog('关闭屏幕键盘，已释放所有修饰键','info');
         }
 
-        // 初始化
         function init(){
             initConfig();
             giteeOwner.onblur=saveConfig;
