@@ -47,7 +47,6 @@
             gap: 12px;
         }
 
-        /* 右侧：十字微调键 */
         .fine-tune {
             display: grid;
             grid-template-areas:
@@ -75,7 +74,6 @@
         .btn-down { grid-area: down; }
         .btn-right { grid-area: right; }
 
-        /* 左侧：最小化、最大化、关闭、关机 */
         .sysBtns {
             display: flex;
             flex-direction: column;
@@ -252,7 +250,6 @@
             }
         }
 
-        /* ========== 平板放大版虚拟键盘 ========== */
         .virtual-keyboard-wrap {
             position: fixed;
             top: 50%;
@@ -364,7 +361,7 @@
 
     <div class="virtual-keyboard-wrap" id="virtualKeyboard">
         <div class="vk-header">
-            <span>屏幕键盘（修饰键点按锁定）</span>
+            <span>屏幕键盘</span>
             <button class="vk-close" onclick="closeVirtualKeyboard()">×</button>
         </div>
         <div class="vk-row">
@@ -441,9 +438,6 @@
         let isDragging = false;
         const radius = 60;
         const sens = 2;
-        const JOYSTICK_DELAY = 200;
-        let lastJoystickTime = 0;
-
         let lockedModifiers = new Set();
 
         function setCookie(name, value, days = 365) {
@@ -507,12 +501,7 @@
             return true;
         }
 
-        async function sendCommand(cmd, isJoystick = false){
-            if(isJoystick){
-                const now = Date.now();
-                if (now - lastJoystickTime < JOYSTICK_DELAY) return;
-                lastJoystickTime = now;
-            }
+        async function sendCommand(cmd){
             const c=getConfig();
             if(!validateConfig(c))return;
 
@@ -541,35 +530,35 @@
         }
 
         function sendClickCommand(b){
-            sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{
+            sendCommand({type:'mouse_click',button:b,clicks:1}).then(s=>{
                 if(s) addLog(`${b}键点击成功`,'success');
             });
         }
 
         function sendMinimize(){
-            sendCommand({type:'key_press', key:'minimize'}, false).then(s=>{
+            sendCommand({type:'key_press', key:'minimize'}).then(s=>{
                 if(s) addLog('已发送窗口最小化指令','success');
             });
         }
         function sendMaximize(){
-            sendCommand({type:'key_press', key:'maximize'}, false).then(s=>{
+            sendCommand({type:'key_press', key:'maximize'}).then(s=>{
                 if(s) addLog('已发送窗口最大化指令','success');
             });
         }
         function sendCloseWindow(){
-            sendCommand({type:'key_press', key:'altf4'}, false).then(s=>{
+            sendCommand({type:'key_press', key:'altf4'}).then(s=>{
                 if(s) addLog('已发送关闭窗口指令','success');
             });
         }
         function sendShutdown(){
             if(!confirm('确定要远程关机吗？')) return;
-            sendCommand({type:'system', action:'shutdown'}, false).then(s=>{
+            sendCommand({type:'system', action:'shutdown'}).then(s=>{
                 if(s) addLog('已发送关机指令','success');
             });
         }
 
         function fineTune(dx, dy) {
-            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy }, false);
+            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
         }
 
         joystickContainer.ontouchstart = e=>{e.preventDefault();isDragging=true;}
@@ -588,7 +577,7 @@
                 type:'mouse_move',
                 deltaX:Math.round(dx*sens),
                 deltaY:Math.round(dy*sens)
-            }, true);
+            });
         }
         joystickContainer.ontouchend = ()=>{
             isDragging=false;
@@ -610,7 +599,7 @@
                 type:'mouse_move',
                 deltaX:Math.round(dx*sens),
                 deltaY:Math.round(dy*sens)
-            }, true);
+            });
         }
         document.onmouseup=()=>{
             isDragging=false;
@@ -621,12 +610,12 @@
             if (lockedModifiers.has(key)) {
                 lockedModifiers.delete(key);
                 btnEl.classList.remove('locked');
-                sendCommand({type:'key_release', key: key}, false);
+                sendCommand({type:'key_release', key: key});
                 addLog(`松开修饰键: ${key}`,'info');
             } else {
                 lockedModifiers.add(key);
                 btnEl.classList.add('locked');
-                sendCommand({type:'key_down', key: key}, false);
+                sendCommand({type:'key_down', key: key});
                 addLog(`按住修饰键: ${key}`,'info');
             }
         }
@@ -640,7 +629,7 @@
                 type:'key_press',
                 key: keyName,
                 modifiers: mods
-            }, false).then(s=>{
+            }).then(s=>{
                 if(s) addLog(`按下按键: ${keyName} ${mods.length ? "(修饰键:"+mods.join('+')+")" : ""}`,'success');
             });
         }
@@ -653,7 +642,7 @@
         function closeVirtualKeyboard(){
             vkEl.style.display = 'none';
             lockedModifiers.forEach(k=>{
-                sendCommand({type:'key_release', key: k}, false);
+                sendCommand({type:'key_release', key: k});
             });
             lockedModifiers.clear();
             document.querySelectorAll('.mod-key').forEach(el=>el.classList.remove('locked'));
