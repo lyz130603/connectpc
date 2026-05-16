@@ -248,7 +248,9 @@
             <button class="btn btn-primary" onclick="sendClickCommand('left')">左键</button>
             <button class="btn btn-primary" onclick="sendClickCommand('right')">右键</button>
             <button class="btn btn-primary" onclick="sendClickCommand('middle')">中键</button>
-            <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
+            <button class="btn btn-primary" onclick="sendCloseWindow()">关闭窗口</button>
+            <button class="btn btn-danger" onclick="sendShutdown()">关机</button>
+            <button class="btn" onclick="clearLog()">清空日志</button>
         </div>
 
         <div class="configSection">
@@ -271,7 +273,7 @@
         let isDragging = false;
         const radius = 60;
         const sens = 2;
-        const JOYSTICK_DELAY = 180;
+        const JOYSTICK_DELAY = 200;
         let lastJoystickTime = 0;
 
         // Cookie 工具函数
@@ -377,6 +379,21 @@
         function sendClickCommand(b){
             sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{
                 if(s) addLog(`${b}键点击成功`,'success');
+            });
+        }
+
+        // 关闭窗口 Alt+F4
+        function sendCloseWindow(){
+            sendCommand({type:'key_press', key:'altf4'}, false).then(s=>{
+                if(s) addLog('已发送关闭窗口指令','success');
+            });
+        }
+
+        // 关机指令
+        function sendShutdown(){
+            if(!confirm('确定要远程关机吗？')) return;
+            sendCommand({type:'system', action:'shutdown'}, false).then(s=>{
+                if(s) addLog('已发送关机指令','success');
             });
         }
 
