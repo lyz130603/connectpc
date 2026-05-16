@@ -441,11 +441,9 @@
         let isDragging = false;
         const radius = 60;
         const sens = 2;
-        const JOYSTICK_DELAY = 500;
+        const JOYSTICK_DELAY = 200;
         let lastJoystickTime = 0;
 
-        const KEY_SEND_DELAY = 0; 
-        let lastKeySendTime = 0;
         let lockedModifiers = new Set();
 
         function setCookie(name, value, days = 365) {
@@ -620,10 +618,6 @@
         }
 
         function toggleModifier(key, btnEl) {
-            const now = Date.now();
-            if (now - lastKeySendTime < KEY_SEND_DELAY) return;
-            lastKeySendTime = now;
-
             if (lockedModifiers.has(key)) {
                 lockedModifiers.delete(key);
                 btnEl.classList.remove('locked');
@@ -637,13 +631,7 @@
             }
         }
 
-        // 关键：强制修饰键顺序：ctrl > shift > alt > win，适配系统快捷键
         function sendKey(keyName){
-            const now = Date.now();
-            if (now - lastKeySendTime < KEY_SEND_DELAY) return;
-            lastKeySendTime = now;
-
-            // 固定顺序，专门解决 Ctrl+Shift+Esc
             let mods = Array.from(lockedModifiers);
             const order = ['ctrl','shift','alt','win'];
             mods.sort((a,b)=>order.indexOf(a)-order.indexOf(b));
