@@ -2,494 +2,209 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>远程鼠标控制器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>远程鼠标</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            font-family: system-ui;
         }
-
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            overflow: hidden;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             height: 100vh;
             display: flex;
             flex-direction: column;
-            touch-action: none;
         }
-
         .header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            padding: 14px;
             color: white;
-            padding: 12px 15px;
             text-align: center;
             font-size: 16px;
-            font-weight: 600;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: relative;
-            z-index: 10;
         }
-
         .controlArea {
             flex: 1;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            touch-action: none;
-            gap: 12px;
         }
-
-        /* 右侧：十字微调键 */
-        .fine-tune {
-            display: grid;
-            grid-template-areas:
-                ". up ."
-                "left down right";
-            gap: 8px;
+        /* 左边：4个系统按钮 */
+        .sysBtns {
             position: absolute;
-            right: 20px;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .sysBtns button {
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+            border: none;
+            color: white;
+            font-size: 12px;
+        }
+        .btn-min { background: rgba(100, 180, 240, 0.5); }
+        .btn-max { background: rgba(80, 200, 120, 0.5); }
+        .btn-close { background: rgba(60, 180, 220, 0.5); }
+        .btn-shutdown { background: rgba(220, 80, 80, 0.6); }
+
+        /* 右边：十字方向键 */
+        .fine-tune {
+            position: absolute;
+            right: 22px;
+            display: grid;
+            grid-template-areas: ". up ." "left down right";
+            gap: 8px;
         }
         .fine-tune button {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
             border: none;
             background: rgba(255,255,255,0.25);
             color: white;
             font-size: 18px;
-            touch-action: none;
-        }
-        .fine-tune button:active {
-            background: rgba(255,255,255,0.5);
         }
         .btn-up { grid-area: up; }
         .btn-left { grid-area: left; }
         .btn-down { grid-area: down; }
         .btn-right { grid-area: right; }
 
-        /* 左侧：关机、关闭窗口 竖排 */
-        .sysBtns {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .sysBtns button {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
-            border: none;
-            color: white;
-            font-size: 12px;
-            touch-action: none;
-        }
-        .btn-close-win { background: rgba(60,180,220,0.4); }
-        .btn-shutdown { background: rgba(220,80,80,0.5); }
-        .sysBtns button:active {
-            opacity: 0.7;
-        }
-
+        /* 摇杆 */
         #joystickContainer {
             width: 200px;
             height: 200px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255,255,255,0.2);
             border-radius: 50%;
             position: relative;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            touch-action: none;
         }
-
         #joystick {
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             background: #ff5555;
             border-radius: 50%;
             position: absolute;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
-            touch-action: none;
         }
 
+        /* 底部按钮 */
         .controlPanel {
-            padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            position: relative;
-            z-index: 10;
+            padding: 14px;
+            background: white;
         }
-
         .controlButtons {
             display: flex;
             gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
         }
-
-        .btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
+        .controlButtons button {
             flex: 1;
-            min-width: 80px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-        }
-
-        .configSection {
-            margin-top: 10px;
             padding: 12px;
-            background-color: rgba(102, 126, 234, 0.1);
-            border-radius: 8px;
-            font-size: 12px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            border: none;
+            background: #667eea;
+            color: white;
         }
-
-        .configSection strong {
-            display: block;
-            margin-bottom: 8px;
-            color: #495057;
-            font-size: 13px;
-        }
-
-        .configSection input {
-            width: 100%;
-            padding: 8px 10px;
-            margin: 6px 0;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 6px;
-            font-size: 13px;
-            transition: border-color 0.2s ease;
-            background-color: white;
-        }
-
-        .configSection input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .configSection .warning {
-            display: block;
-            margin-top: 8px;
-            color: #dc3545;
-            font-size: 11px;
-            line-height: 1.4;
-        }
-
         #log {
             height: 100px;
-            overflow-y: auto;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 10px 15px;
+            background: #f6f6f6;
+            padding: 8px;
             font-size: 12px;
-            line-height: 1.5;
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .log-item {
-            margin-bottom: 6px;
-            padding-left: 8px;
-            border-left: 3px solid #667eea;
-        }
-
-        .log-error {
-            border-left-color: #dc3545;
-            color: #dc3545;
-        }
-
-        .log-success {
-            border-left-color: #28a745;
-            color: #28a745;
-        }
-
-        @media (max-width: 375px) {
-            #joystickContainer {
-                width: 160px;
-                height: 160px;
-            }
-            #joystick {
-                width: 64px;
-                height: 64px;
-            }
-            .fine-tune {
-                right: 10px;
-            }
-            .sysBtns {
-                left: 10px;
-            }
+            margin-top: 10px;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        远程鼠标控制器
-    </div>
+
+    <div class="header">远程鼠标控制器</div>
 
     <div class="controlArea">
-        <div id="joystickContainer">
-            <div id="joystick"></div>
-        </div>
+        <div id="joystickContainer"><div id="joystick"></div></div>
 
-        <!-- 右侧：十字微调 -->
-        <div class="fine-tune">
-            <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
-            <button class="btn-left" onclick="fineTune(-5,0)">←</button>
-            <button class="btn-down" onclick="fineTune(0,5)">↓</button>
-            <button class="btn-right" onclick="fineTune(5,0)">→</button>
-        </div>
-
-        <!-- 左侧：关机、关闭窗口 -->
+        <!-- 左边：4个系统按钮 -->
         <div class="sysBtns">
-            <button class="btn-close-win" onclick="sendCloseWindow()">关闭</button>
+            <button class="btn-min" onclick="sendMin()">最小化</button>
+            <button class="btn-max" onclick="sendMax()">最大化</button>
+            <button class="btn-close" onclick="sendClose()">关闭窗口</button>
             <button class="btn-shutdown" onclick="sendShutdown()">关机</button>
+        </div>
+
+        <!-- 右边：十字方向键 -->
+        <div class="fine-tune">
+            <button class="btn-up" onclick="fine(0,-5)">↑</button>
+            <button class="btn-left" onclick="fine(-5,0)">←</button>
+            <button class="btn-down" onclick="fine(0,5)">↓</button>
+            <button class="btn-right" onclick="fine(5,0)">→</button>
         </div>
     </div>
 
     <div class="controlPanel">
         <div class="controlButtons">
-            <button class="btn btn-primary" onclick="sendClickCommand('left')">左键</button>
-            <button class="btn btn-primary" onclick="sendClickCommand('right')">右键</button>
-            <button class="btn btn-primary" onclick="sendClickCommand('middle')">中键</button>
-            <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
+            <button onclick="clickLeft()">左键</button>
+            <button onclick="clickRight()">右键</button>
+            <button onclick="clickMiddle()">中键</button>
         </div>
-
-        <div class="configSection">
-            <strong>Gitee配置信息</strong>
-            <input type="text" id="giteeOwner" placeholder="Gitee用户名" value="">
-            <input type="text" id="giteeRepo" placeholder="仓库名" value="">
-            <input type="text" id="giteePath" placeholder="文件路径" value="latest.json">
-            <input type="text" id="giteeToken" placeholder="Gitee私人令牌" value="">
-            <span class="warning">⚠️ 重要提示：生产环境请通过后端中转Token，避免直接暴露在前端！</span>
-        </div>
+        <div id="log"></div>
     </div>
 
-    <div id="log"></div>
-
     <script>
-        const joystickContainer = document.getElementById('joystickContainer');
-        const joystick = document.getElementById('joystick');
-        const log = document.getElementById('log');
-
-        let isDragging = false;
-        const radius = 60;
-        const sens = 2;
         const JOYSTICK_DELAY = 200;
-        let lastJoystickTime = 0;
+        let lastMove = 0;
 
-        // Cookie 工具函数
-        function setCookie(name, value, days = 365) {
-            const d = new Date();
-            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-            document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/";
-        }
-        function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) === ' ') c = c.substring(1);
-                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length));
-            }
-            return null;
+        function log(m) {
+            let d = new Date().toLocaleTimeString();
+            document.getElementById("log").innerHTML += `[${d}] ${m}\n`;
+            document.getElementById("log").scrollTop = 99999;
         }
 
-        // 配置加载与保存
-        function initConfig() {
-            const owner = getCookie("giteeOwner");
-            const repo = getCookie("giteeRepo");
-            const path = getCookie("giteePath");
-            const token = getCookie("giteeToken");
-            if (owner) giteeOwner.value = owner;
-            if (repo) giteeRepo.value = repo;
-            if (path) giteePath.value = path;
-            if (token) giteeToken.value = token;
-            addLog("配置已从 Cookie 加载", "success");
-        }
-        function saveConfig() {
-            setCookie("giteeOwner", giteeOwner.value.trim());
-            setCookie("giteeRepo", giteeRepo.value.trim());
-            setCookie("giteePath", giteePath.value.trim());
-            setCookie("giteeToken", giteeToken.value.trim());
-            addLog("配置已保存到 Cookie", "success");
-        }
-
-        // 日志输出（原版格式）
-        function addLog(msg, t='info'){
-            const d=document.createElement('div');
-            d.className=`log-item log-${t}`;
-            d.innerHTML=`[${new Date().toLocaleTimeString()}] ${msg}`;
-            log.appendChild(d);
-            if(log.children.length>50) log.removeChild(log.firstChild);
-            log.scrollTop=log.scrollHeight;
-        }
-        function clearLog(){log.innerHTML='';addLog('日志清空','success');}
-
-        function getConfig() {
-            return {
-                owner: giteeOwner.value.trim(),
-                repo: giteeRepo.value.trim(),
-                path: giteePath.value.trim(),
-                token: giteeToken.value.trim()
-            };
-        }
-        function validateConfig(c){
-            if(!c.owner){addLog('请填用户名','error');return false;}
-            if(!c.repo){addLog('请填仓库名','error');return false;}
-            if(!c.path){addLog('请填路径','error');return false;}
-            if(!c.token){addLog('请填令牌','error');return false;}
-            return true;
-        }
-
-        // 发送指令 + 日志输出
-        async function sendCommand(cmd, isJoystick = false){
-            if(isJoystick){
-                const now = Date.now();
-                if (now - lastJoystickTime < JOYSTICK_DELAY) return;
-                lastJoystickTime = now;
-            }
-            const c=getConfig();
-            if(!validateConfig(c))return;
-
-            // 移动指令日志
-            if(cmd.type === 'mouse_move'){
-                addLog(`鼠标移动: X=${cmd.deltaX}, Y=${cmd.deltaY}`);
-            }
-
+        // 发送指令
+        async function send(cmd) {
             cmd.timestamp = Date.now();
-            try{
-                const url=`https://gitee.com/api/v5/repos/${c.owner}/${c.repo}/contents/${c.path}`;
-                const headers={Authorization:`token ${c.token}`,'Content-Type':'application/json'};
-                let sha=null;
-                try{
-                    const r=await fetch(url,{headers});
-                    if(r.ok){const d=await r.json();sha=d.sha;}
-                }catch(e){}
-                const content=btoa(unescape(encodeURIComponent(JSON.stringify(cmd))));
-                const body={message:`Mouse ${cmd.type}`,content,branch:'main'};
-                if(sha)body.sha=sha;
-                await fetch(url,{method:sha?'PUT':'POST',headers,body:JSON.stringify(body)});
-                return true;
-            }catch(e){
-                addLog(`发送失败:${e.message}`,'error');
-                return false;
-            }
+            try {
+                let res = await fetch("https://gitee.com/api/v5/repos/lyz123gitee/remote-control/contents/latest.json", {
+                    method: "PUT",
+                    headers: { "Authorization": "token 5883febd87fb1f63c452dcff144d18ac" },
+                    body: JSON.stringify({
+                        branch: "main",
+                        message: "cmd",
+                        content: btoa(JSON.stringify(cmd)),
+                        sha: (await (await fetch("https://gitee.com/api/v5/repos/lyz123gitee/remote-control/contents/latest.json")).json()).sha
+                    })
+                });
+                log("指令发送成功");
+            } catch(e) { log("发送失败"); }
         }
 
-        // 点击指令 + 日志
-        function sendClickCommand(b){
-            sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{
-                if(s) addLog(`${b}键点击成功`,'success');
-            });
-        }
+        // 摇杆移动
+        document.getElementById("joystickContainer").addEventListener("touchmove", e=>{
+            let now = Date.now();
+            if (now - lastMove < JOYSTICK_DELAY) return;
+            lastMove = now;
+            let dx = e.touches[0].clientX - window.innerWidth/2;
+            let dy = e.touches[0].clientY - window.innerHeight/2 + 100;
+            send({ type:"mouse_move", deltaX: Math.round(dx/2.5), deltaY: Math.round(dy/2.5) });
+        });
 
-        // 关闭窗口 Alt+F4
-        function sendCloseWindow(){
-            sendCommand({type:'key_press', key:'altf4'}, false).then(s=>{
-                if(s) addLog('已发送关闭窗口指令','success');
-            });
-        }
+        // 微调
+        function fine(x,y) { send({ type:"mouse_move", deltaX:x, deltaY:y }); }
 
-        // 关机指令
-        function sendShutdown(){
-            if(!confirm('确定要远程关机吗？')) return;
-            sendCommand({type:'system', action:'shutdown'}, false).then(s=>{
-                if(s) addLog('已发送关机指令','success');
-            });
-        }
+        // 点击
+        function clickLeft() { send({ type:"mouse_click", button:"left" }); }
+        function clickRight() { send({ type:"mouse_click", button:"right" }); }
+        function clickMiddle() { send({ type:"mouse_click", button:"middle" }); }
 
-        // 微调指令 + 日志
-        function fineTune(dx, dy) {
-            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy }, false);
-        }
-
-        // 摇杆（带延迟 + 日志）
-        joystickContainer.ontouchstart = e=>{e.preventDefault();isDragging=true;}
-        joystickContainer.ontouchmove = e=>{
-            if(!isDragging)return;
-            e.preventDefault();
-            const t=e.touches[0];
-            const r=joystickContainer.getBoundingClientRect();
-            const x=t.clientX-r.left-r.width/2;
-            const y=t.clientY-r.top-r.height/2;
-            const dist=Math.hypot(x,y);
-            let dx=x,dy=y;
-            if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
-            joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            sendCommand({
-                type:'mouse_move',
-                deltaX:Math.round(dx*sens),
-                deltaY:Math.round(dy*sens)
-            }, true);
-        }
-        joystickContainer.ontouchend = ()=>{
-            isDragging=false;
-            joystick.style.transform='translate(-50%,-50%)';
-        }
-        joystickContainer.ontouchcancel=joystickContainer.ontouchend;
-
-        // 桌面端兼容
-        joystickContainer.onmousedown=()=>isDragging=true;
-        document.onmousemove=e=>{
-            if(!isDragging)return;
-            const r=joystickContainer.getBoundingClientRect();
-            const x=e.clientX-r.left-r.width/2;
-            const y=e.clientY-r.top-r.height/2;
-            const dist=Math.hypot(x,y);
-            let dx=x,dy=y;
-            if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
-            joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            sendCommand({
-                type:'mouse_move',
-                deltaX:Math.round(dx*sens),
-                deltaY:Math.round(dy*sens)
-            }, true);
-        }
-        document.onmouseup=()=>{
-            isDragging=false;
-            joystick.style.transform='translate(-50%,-50%)';
-        }
-
-        // 初始化
-        function init(){
-            initConfig();
-            giteeOwner.onblur=saveConfig;
-            giteeRepo.onblur=saveConfig;
-            giteePath.onblur=saveConfig;
-            giteeToken.onblur=saveConfig;
-            addLog('控制器就绪','success');
-        }
-        init();
+        // 系统功能
+        function sendMin() { send({ type:"key_press", key:"minimize" }); }
+        function sendMax() { send({ type:"key_press", key:"maximize" }); }
+        function sendClose() { send({ type:"key_press", key:"altf4" }); }
+        function sendShutdown() { if(confirm("确定关机？")) send({ type:"system", action:"shutdown" }); }
     </script>
 </body>
 </html>
