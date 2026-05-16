@@ -47,21 +47,15 @@
             gap: 12px;
         }
 
-        .sideKeysWrap {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            position: absolute;
-            left: 20px;
-            align-items: center;
-        }
-
+        /* 右侧：十字微调键 */
         .fine-tune {
             display: grid;
             grid-template-areas:
                 ". up ."
                 "left down right";
             gap: 8px;
+            position: absolute;
+            right: 20px;
         }
         .fine-tune button {
             width: 44px;
@@ -81,11 +75,15 @@
         .btn-down { grid-area: down; }
         .btn-right { grid-area: right; }
 
-        /* 关机、关闭窗口 竖排按钮 */
+        /* 左侧：关机、关闭窗口 竖排 */
         .sysBtns {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
         }
         .sysBtns button {
             width: 44px;
@@ -244,12 +242,11 @@
                 width: 64px;
                 height: 64px;
             }
-            .btn {
-                padding: 8px 12px;
-                font-size: 13px;
+            .fine-tune {
+                right: 10px;
             }
-            .sideKeysWrap {
-                right: 20px;
+            .sysBtns {
+                left: 10px;
             }
         }
     </style>
@@ -264,18 +261,18 @@
             <div id="joystick"></div>
         </div>
 
-        <!-- 控制按键 -->
-        <div class="sideKeysWrap">
-            <div class="fine-tune">
-                <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
-                <button class="btn-left" onclick="fineTune(-5,0)">←</button>
-                <button class="btn-down" onclick="fineTune(0,5)">↓</button>
-                <button class="btn-right" onclick="fineTune(5,0)">→</button>
-            </div>
-            <div class="sysBtns">
-                <button class="btn-close-win" onclick="sendCloseWindow()">关闭窗口</button>
-                <button class="btn-shutdown" onclick="sendShutdown()">关机</button>
-            </div>
+        <!-- 右侧：十字微调 -->
+        <div class="fine-tune">
+            <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
+            <button class="btn-left" onclick="fineTune(-5,0)">←</button>
+            <button class="btn-down" onclick="fineTune(0,5)">↓</button>
+            <button class="btn-right" onclick="fineTune(5,0)">→</button>
+        </div>
+
+        <!-- 左侧：关机、关闭窗口 -->
+        <div class="sysBtns">
+            <button class="btn-close-win" onclick="sendCloseWindow()">关闭</button>
+            <button class="btn-shutdown" onclick="sendShutdown()">关机</button>
         </div>
     </div>
 
