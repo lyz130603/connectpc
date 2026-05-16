@@ -75,7 +75,7 @@
         .btn-down { grid-area: down; }
         .btn-right { grid-area: right; }
 
-        /* 左侧：最小化、最大化、关闭窗口、关机 竖排 */
+        /* 左侧：最小化、最大化、关闭、关机 */
         .sysBtns {
             display: flex;
             flex-direction: column;
@@ -304,7 +304,6 @@
             max-width: 70px;
             transition: background 0.2s;
         }
-        /* 长按锁定的按键高亮 */
         .vk-key.locked {
             background: #28a745 !important;
         }
@@ -327,7 +326,6 @@
             <div id="joystick"></div>
         </div>
 
-        <!-- 右侧：十字微调 -->
         <div class="fine-tune">
             <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
             <button class="btn-left" onclick="fineTune(-5,0)">←</button>
@@ -335,7 +333,6 @@
             <button class="btn-right" onclick="fineTune(5,0)">→</button>
         </div>
 
-        <!-- 左侧：最小化、最大化、关闭、关机 -->
         <div class="sysBtns">
             <button class="btn-min" onclick="sendMinimize()">最小化</button>
             <button class="btn-max" onclick="sendMaximize()">最大化</button>
@@ -365,7 +362,6 @@
 
     <div id="log"></div>
 
-    <!-- 虚拟键盘 -->
     <div class="virtual-keyboard-wrap" id="virtualKeyboard">
         <div class="vk-header">
             <span>屏幕键盘（修饰键点按锁定）</span>
@@ -448,14 +444,10 @@
         const JOYSTICK_DELAY = 200;
         let lastJoystickTime = 0;
 
-        // 1. 按键防抖延迟：300ms，解决发送太快
-        const KEY_SEND_DELAY = 300;
+        const KEY_SEND_DELAY = 350; // 加长延迟，保证多键同步
         let lastKeySendTime = 0;
-
-        // 2. 修饰键锁定状态：shift/ctrl/alt/win
         let lockedModifiers = new Set();
 
-        // Cookie工具
         function setCookie(name, value, days = 365) {
             const d = new Date();
             d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -472,7 +464,6 @@
             return null;
         }
 
-        // 配置
         function initConfig() {
             const owner = getCookie("giteeOwner");
             const repo = getCookie("giteeRepo");
@@ -492,7 +483,6 @@
             addLog("配置已保存到 Cookie", "success");
         }
 
-        // 日志
         function addLog(msg, t='info'){
             const d=document.createElement('div');
             d.className=`log-item log-${t}`;
@@ -519,7 +509,6 @@
             return true;
         }
 
-        // 发送指令
         async function sendCommand(cmd, isJoystick = false){
             if(isJoystick){
                 const now = Date.now();
@@ -553,14 +542,12 @@
             }
         }
 
-        // 鼠标点击
         function sendClickCommand(b){
             sendCommand({type:'mouse_click',button:b,clicks:1}, false).then(s=>{
                 if(s) addLog(`${b}键点击成功`,'success');
             });
         }
 
-        // 最小化最大化关闭
         function sendMinimize(){
             sendCommand({type:'key_press', key:'minimize'}, false).then(s=>{
                 if(s) addLog('已发送窗口最小化指令','success');
@@ -587,7 +574,6 @@
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy }, false);
         }
 
-        // 摇杆
         joystickContainer.ontouchstart = e=>{e.preventDefault();isDragging=true;}
         joystickContainer.ontouchmove = e=>{
             if(!isDragging)return;
@@ -633,20 +619,17 @@
             joystick.style.transform='translate(-50%,-50%)';
         }
 
-        // ========== 核心：修饰键锁定（Shift/Ctrl/Alt/Win 长按） ==========
         function toggleModifier(key, btnEl) {
             const now = Date.now();
             if (now - lastKeySendTime < KEY_SEND_DELAY) return;
             lastKeySendTime = now;
 
             if (lockedModifiers.has(key)) {
-                // 松开
                 lockedModifiers.delete(key);
                 btnEl.classList.remove('locked');
                 sendCommand({type:'key_release', key: key}, false);
                 addLog(`松开修饰键: ${key}`,'info');
             } else {
-                // 按住
                 lockedModifiers.add(key);
                 btnEl.classList.add('locked');
                 sendCommand({type:'key_down', key: key}, false);
@@ -654,23 +637,26 @@
             }
         }
 
-        // ========== 普通按键发送（带延迟 + 自动带上已锁定修饰键） ==========
+        // 关键：强制修饰键顺序：ctrl > shift > alt > win，适配系统快捷键
         function sendKey(keyName){
             const now = Date.now();
-            // 防抖延迟，避免发太快
             if (now - lastKeySendTime < KEY_SEND_DELAY) return;
             lastKeySendTime = now;
+
+            // 固定顺序，专门解决 Ctrl+Shift+Esc
+            let mods = Array.from(lockedModifiers);
+            const order = ['ctrl','shift','alt','win'];
+            mods.sort((a,b)=>order.indexOf(a)-order.indexOf(b));
 
             sendCommand({
                 type:'key_press',
                 key: keyName,
-                modifiers: Array.from(lockedModifiers) // 把当前按住的修饰键一起发给后端
+                modifiers: mods
             }, false).then(s=>{
-                if(s) addLog(`按下按键: ${keyName} ${lockedModifiers.size ? "(含修饰键:"+Array.from(lockedModifiers).join(',')+")" : ""}`,'success');
+                if(s) addLog(`按下按键: ${keyName} ${mods.length ? "(修饰键:"+mods.join('+')+")" : ""}`,'success');
             });
         }
 
-        // 键盘开关
         const vkEl = document.getElementById('virtualKeyboard');
         function openVirtualKeyboard(){
             vkEl.style.display = 'block';
@@ -678,7 +664,6 @@
         }
         function closeVirtualKeyboard(){
             vkEl.style.display = 'none';
-            // 关闭键盘时，自动松开所有修饰键
             lockedModifiers.forEach(k=>{
                 sendCommand({type:'key_release', key: k}, false);
             });
