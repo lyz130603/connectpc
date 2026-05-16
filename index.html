@@ -252,58 +252,64 @@
             }
         }
 
-        /* ========== 新增：虚拟屏幕键盘样式 ========== */
+        /* ========== 【平板专用·放大版】虚拟屏幕键盘样式 ========== */
         .virtual-keyboard-wrap {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: #222;
-            padding: 12px;
+            padding: 16px;
             border-radius: 12px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.4);
             z-index: 9999;
             display: none;
+            /* 平板放大：宽度占屏幕85%，适配横屏 */
+            width: 85vw;
         }
         .vk-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: #fff;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             padding: 0 4px;
+            font-size: 18px;
         }
         .vk-close {
             background: #ff4444;
             color: white;
             border: none;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 18px;
         }
         .vk-row {
             display: flex;
-            gap: 4px;
-            margin-bottom: 4px;
+            gap: 3px; /* 缝隙极小，仅留一点点 */
+            margin-bottom: 3px;
         }
         .vk-key {
-            min-width: 42px;
-            height: 42px;
+            min-width: 58px;  /* 按键宽度放大 */
+            height: 58px;     /* 按键高度放大，好按 */
             background: #444;
             color: #fff;
             border: none;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 18px;   /* 字体放大 */
             cursor: pointer;
+            flex: 1;
+            max-width: 70px;
         }
         .vk-key:active {
             background: #666;
         }
         .vk-space {
-            flex: 1;
-            min-width: 200px;
+            flex: 4; /* 空格拉长，接近真实键盘 */
+            max-width: unset;
         }
     </style>
 </head>
@@ -355,7 +361,7 @@
 
     <div id="log"></div>
 
-    <!-- ========== 新增：虚拟屏幕键盘弹窗 ========== -->
+    <!-- ========== 虚拟屏幕键盘弹窗 ========== -->
     <div class="virtual-keyboard-wrap" id="virtualKeyboard">
         <div class="vk-header">
             <span>屏幕键盘</span>
@@ -419,7 +425,7 @@
             <button class="vk-key" onclick="sendKey('ctrl')">Ctrl</button>
             <button class="vk-key" onclick="sendKey('win')">Win</button>
             <button class="vk-key" onclick="sendKey('alt')">Alt</button>
-            <button class="vk-key vk-space" onclick="sendKey(' ')">空格</button>
+            <button class="vk-key vk-space" onclick="sendKey('space')">空格</button>
             <button class="vk-key" onclick="sendKey('left')">←</button>
             <button class="vk-key" onclick="sendKey('down')">↓</button>
             <button class="vk-key" onclick="sendKey('up')">↑</button>
@@ -625,7 +631,7 @@
             joystick.style.transform='translate(-50%,-50%)';
         }
 
-        // ========== 新增：虚拟键盘控制 ==========
+        // ========== 虚拟键盘控制 ==========
         const vkEl = document.getElementById('virtualKeyboard');
         function openVirtualKeyboard(){
             vkEl.style.display = 'block';
@@ -635,9 +641,9 @@
             vkEl.style.display = 'none';
             addLog('关闭屏幕键盘','info');
         }
-        // 发送按键指令（兼容你后端 pyautogui）
+        // 发送按键：统一用 key_press，真实按下按键
         function sendKey(keyName){
-            sendCommand({type:'keyboard_type', text: keyName}, false).then(s=>{
+            sendCommand({type:'key_press', key: keyName}, false).then(s=>{
                 if(s) addLog(`按下按键: ${keyName}`,'success');
             });
         }
