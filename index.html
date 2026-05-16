@@ -47,6 +47,53 @@
             gap: 12px;
         }
 
+        /* 精确打开文件/文件夹面板 - 摇杆左侧 */
+        .openItemPanel {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 175px;
+            padding: 10px;
+            background:rgba(76, 175, 80, 0.15);
+            border:1px solid rgba(76, 175, 80, 0.4);
+            border-radius: 10px;
+            backdrop-filter: blur(6px);
+        }
+        .openItemPanel strong {
+            display:block;
+            color:#fff;
+            font-size:13px;
+            margin-bottom:6px;
+        }
+        .openItemPanel input {
+            width:100%;
+            padding:6px 8px;
+            border-radius:6px;
+            border:none;
+            margin-bottom:6px;
+            font-size:12px;
+        }
+        .openItemPanel .btn-row {
+            display:flex;
+            gap:6px;
+        }
+        .openItemPanel button {
+            flex:1;
+            padding:6px;
+            border:none;
+            border-radius:6px;
+            font-size:12px;
+            color:white;
+        }
+        .openItemPanel .run-btn { background:#28a745; }
+        .openItemPanel .clear-btn { background:#ff9800; }
+        .openItemPanel .tip {
+            font-size:10px;
+            color:#ffecec;
+            margin-top:4px;
+            line-height:1.4;
+        }
+
         .fine-tune {
             display: grid;
             grid-template-areas:
@@ -248,6 +295,11 @@
             .sysBtns {
                 left: 10px;
             }
+            .openItemPanel {
+                left:10px;
+                top:10px;
+                width:155px;
+            }
         }
 
         /* ========== 全屏超大虚拟键盘 ========== */
@@ -326,6 +378,17 @@
     </div>
 
     <div class="controlArea">
+        <!-- 精确打开文件/文件夹面板 -->
+        <div class="openItemPanel">
+            <strong>📂 精确打开 文件夹/文件</strong>
+            <input type="text" id="openName" placeholder="带后缀=文件 不带=文件夹">
+            <div class="btn-row">
+                <button class="run-btn" onclick="sendOpenItem()">打开</button>
+                <button class="clear-btn" onclick="document.getElementById('openName').value=''">清空</button>
+            </div>
+            <div class="tip">示例：WeChat(文件夹) / notepad.exe / test.txt</div>
+        </div>
+
         <div id="joystickContainer">
             <div id="joystick"></div>
         </div>
@@ -354,17 +417,6 @@
             <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
         </div>
 
-        <!-- 新增：打开文件/程序功能 -->
-        <div class="configSection" style="margin-top:12px; background:rgba(76, 175, 80, 0.1); border-color:rgba(76, 175, 80, 0.3);">
-            <strong>📂 远程打开文件/程序</strong>
-            <input type="text" id="filePath" placeholder="输入完整路径，例如：C:\Windows\notepad.exe" value="">
-            <div style="display:flex; gap:8px; margin-top:6px;">
-                <button class="btn" style="background:#28a745; color:white; flex:1;" onclick="sendOpenFile()">打开文件/程序</button>
-                <button class="btn" style="background:#ff9800; color:white; flex:1;" onclick="document.getElementById('filePath').value=''">清空</button>
-            </div>
-            <span class="warning" style="color:#ff5722;">⚠️ 路径必须是电脑上真实存在的绝对路径</span>
-        </div>
-
         <div class="configSection">
             <strong>Gitee配置信息</strong>
             <input type="text" id="giteeOwner" placeholder="Gitee用户名" value="">
@@ -384,7 +436,6 @@
             <button class="vk-close" onclick="closeVirtualKeyboard()">×</button>
         </div>
 
-        <!-- F1-F12 功能键 -->
         <div class="vk-row">
             <button class="vk-key vk-func" onclick="sendKey('f1')">F1</button>
             <button class="vk-key vk-func" onclick="sendKey('f2')">F2</button>
@@ -400,7 +451,6 @@
             <button class="vk-key vk-func" onclick="sendKey('f12')">F12</button>
         </div>
 
-        <!-- 第一行 -->
         <div class="vk-row">
             <button class="vk-key vk-func" onclick="sendKey('esc')">Esc</button>
             <button class="vk-key" onclick="sendKey('`')">`</button>
@@ -419,7 +469,6 @@
             <button class="vk-key vk-wide" onclick="sendKey('backspace')">退格</button>
         </div>
 
-        <!-- 第二行 -->
         <div class="vk-row">
             <button class="vk-key vk-wide" onclick="sendKey('tab')">Tab</button>
             <button class="vk-key" onclick="sendKey('q')">q</button>
@@ -437,7 +486,6 @@
             <button class="vk-key" onclick="sendKey('\\')">\</button>
         </div>
 
-        <!-- 第三行 -->
         <div class="vk-row">
             <button class="vk-key vk-wide" onclick="sendKey('capslock')">Caps</button>
             <button class="vk-key" onclick="sendKey('a')">a</button>
@@ -454,7 +502,6 @@
             <button class="vk-key vk-wide" onclick="sendKey('enter')">回车</button>
         </div>
 
-        <!-- 第四行 -->
         <div class="vk-row">
             <button class="vk-key mod-key vk-wide" data-key="shift" onclick="toggleModifier('shift', this)">Shift</button>
             <button class="vk-key" onclick="sendKey('z')">z</button>
@@ -470,7 +517,6 @@
             <button class="vk-key vk-wide" onclick="sendKey('printscreen')">PrSc</button>
         </div>
 
-        <!-- 第五行 控制键+方向键 -->
         <div class="vk-row">
             <button class="vk-key mod-key" data-key="ctrl" onclick="toggleModifier('ctrl', this)">Ctrl</button>
             <button class="vk-key mod-key" data-key="win" onclick="toggleModifier('win', this)">Win</button>
@@ -486,7 +532,6 @@
             <button class="vk-key vk-func" onclick="sendKey('pagedown')">PgDn</button>
         </div>
 
-        <!-- 纯方向键行 -->
         <div class="vk-row">
             <button class="vk-key vk-wide" onclick="sendKey('left')">←</button>
             <button class="vk-key vk-wide" onclick="sendKey('up')">↑</button>
@@ -594,18 +639,18 @@
             }
         }
 
-        // 新增：打开文件功能
-        function sendOpenFile() {
-            const path = document.getElementById('filePath').value.trim();
-            if (!path) {
-                addLog('请输入文件路径', 'error');
+        // 发送打开文件/文件夹指令
+        function sendOpenItem() {
+            const name = document.getElementById('openName').value.trim();
+            if (!name) {
+                addLog('请输入名称', 'error');
                 return;
             }
             sendCommand({
-                type: 'open_file',
-                filePath: path
+                type: 'open_item',
+                itemName: name
             }).then(s => {
-                if (s) addLog(`已发送打开指令: ${path}`, 'success');
+                if (s) addLog(`已发送打开指令: ${name}`, 'success');
             });
         }
 
