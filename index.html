@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>远程鼠标控制器</title>
+    <title>远程电脑控制器</title>
     <style>
         * {
             margin: 0;
@@ -251,11 +251,65 @@
                 left: 10px;
             }
         }
+
+        /* ========== 新增：虚拟屏幕键盘样式 ========== */
+        .virtual-keyboard-wrap {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            z-index: 9999;
+            display: none;
+        }
+        .vk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fff;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+        .vk-close {
+            background: #ff4444;
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .vk-row {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .vk-key {
+            min-width: 42px;
+            height: 42px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .vk-key:active {
+            background: #666;
+        }
+        .vk-space {
+            flex: 1;
+            min-width: 200px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        远程鼠标控制器
+        远程电脑控制器
     </div>
 
     <div class="controlArea">
@@ -285,6 +339,7 @@
             <button class="btn btn-primary" onclick="sendClickCommand('left')">左键</button>
             <button class="btn btn-primary" onclick="sendClickCommand('right')">右键</button>
             <button class="btn btn-primary" onclick="sendClickCommand('middle')">中键</button>
+            <button class="btn btn-primary" onclick="openVirtualKeyboard()">屏幕键盘</button>
             <button class="btn btn-danger" onclick="clearLog()">清空日志</button>
         </div>
 
@@ -299,6 +354,78 @@
     </div>
 
     <div id="log"></div>
+
+    <!-- ========== 新增：虚拟屏幕键盘弹窗 ========== -->
+    <div class="virtual-keyboard-wrap" id="virtualKeyboard">
+        <div class="vk-header">
+            <span>屏幕键盘</span>
+            <button class="vk-close" onclick="closeVirtualKeyboard()">×</button>
+        </div>
+        <div class="vk-row">
+            <button class="vk-key" onclick="sendKey('esc')">Esc</button>
+            <button class="vk-key" onclick="sendKey('1')">1</button>
+            <button class="vk-key" onclick="sendKey('2')">2</button>
+            <button class="vk-key" onclick="sendKey('3')">3</button>
+            <button class="vk-key" onclick="sendKey('4')">4</button>
+            <button class="vk-key" onclick="sendKey('5')">5</button>
+            <button class="vk-key" onclick="sendKey('6')">6</button>
+            <button class="vk-key" onclick="sendKey('7')">7</button>
+            <button class="vk-key" onclick="sendKey('8')">8</button>
+            <button class="vk-key" onclick="sendKey('9')">9</button>
+            <button class="vk-key" onclick="sendKey('0')">0</button>
+            <button class="vk-key" onclick="sendKey('backspace')">Bksp</button>
+        </div>
+        <div class="vk-row">
+            <button class="vk-key" onclick="sendKey('tab')">Tab</button>
+            <button class="vk-key" onclick="sendKey('q')">q</button>
+            <button class="vk-key" onclick="sendKey('w')">w</button>
+            <button class="vk-key" onclick="sendKey('e')">e</button>
+            <button class="vk-key" onclick="sendKey('r')">r</button>
+            <button class="vk-key" onclick="sendKey('t')">t</button>
+            <button class="vk-key" onclick="sendKey('y')">y</button>
+            <button class="vk-key" onclick="sendKey('u')">u</button>
+            <button class="vk-key" onclick="sendKey('i')">i</button>
+            <button class="vk-key" onclick="sendKey('o')">o</button>
+            <button class="vk-key" onclick="sendKey('p')">p</button>
+            <button class="vk-key" onclick="sendKey('delete')">Del</button>
+        </div>
+        <div class="vk-row">
+            <button class="vk-key" onclick="sendKey('capslock')">Caps</button>
+            <button class="vk-key" onclick="sendKey('a')">a</button>
+            <button class="vk-key" onclick="sendKey('s')">s</button>
+            <button class="vk-key" onclick="sendKey('d')">d</button>
+            <button class="vk-key" onclick="sendKey('f')">f</button>
+            <button class="vk-key" onclick="sendKey('g')">g</button>
+            <button class="vk-key" onclick="sendKey('h')">h</button>
+            <button class="vk-key" onclick="sendKey('j')">j</button>
+            <button class="vk-key" onclick="sendKey('k')">k</button>
+            <button class="vk-key" onclick="sendKey('l')">l</button>
+            <button class="vk-key" onclick="sendKey('enter')">回车</button>
+        </div>
+        <div class="vk-row">
+            <button class="vk-key" onclick="sendKey('shift')">Shift</button>
+            <button class="vk-key" onclick="sendKey('z')">z</button>
+            <button class="vk-key" onclick="sendKey('x')">x</button>
+            <button class="vk-key" onclick="sendKey('c')">c</button>
+            <button class="vk-key" onclick="sendKey('v')">v</button>
+            <button class="vk-key" onclick="sendKey('b')">b</button>
+            <button class="vk-key" onclick="sendKey('n')">n</button>
+            <button class="vk-key" onclick="sendKey('m')">m</button>
+            <button class="vk-key" onclick="sendKey(',')">,</button>
+            <button class="vk-key" onclick="sendKey('.')">.</button>
+            <button class="vk-key" onclick="sendKey('/')">/</button>
+        </div>
+        <div class="vk-row">
+            <button class="vk-key" onclick="sendKey('ctrl')">Ctrl</button>
+            <button class="vk-key" onclick="sendKey('win')">Win</button>
+            <button class="vk-key" onclick="sendKey('alt')">Alt</button>
+            <button class="vk-key vk-space" onclick="sendKey(' ')">空格</button>
+            <button class="vk-key" onclick="sendKey('left')">←</button>
+            <button class="vk-key" onclick="sendKey('down')">↓</button>
+            <button class="vk-key" onclick="sendKey('up')">↑</button>
+            <button class="vk-key" onclick="sendKey('right')">→</button>
+        </div>
+    </div>
 
     <script>
         const joystickContainer = document.getElementById('joystickContainer');
@@ -417,14 +544,14 @@
             });
         }
 
-        // ==================== 新增：最小化 ====================
+        // 最小化
         function sendMinimize(){
             sendCommand({type:'key_press', key:'minimize'}, false).then(s=>{
                 if(s) addLog('已发送窗口最小化指令','success');
             });
         }
 
-        // ==================== 新增：最大化 ====================
+        // 最大化
         function sendMaximize(){
             sendCommand({type:'key_press', key:'maximize'}, false).then(s=>{
                 if(s) addLog('已发送窗口最大化指令','success');
@@ -496,6 +623,23 @@
         document.onmouseup=()=>{
             isDragging=false;
             joystick.style.transform='translate(-50%,-50%)';
+        }
+
+        // ========== 新增：虚拟键盘控制 ==========
+        const vkEl = document.getElementById('virtualKeyboard');
+        function openVirtualKeyboard(){
+            vkEl.style.display = 'block';
+            addLog('打开屏幕键盘','info');
+        }
+        function closeVirtualKeyboard(){
+            vkEl.style.display = 'none';
+            addLog('关闭屏幕键盘','info');
+        }
+        // 发送按键指令（兼容你后端 pyautogui）
+        function sendKey(keyName){
+            sendCommand({type:'keyboard_type', text: keyName}, false).then(s=>{
+                if(s) addLog(`按下按键: ${keyName}`,'success');
+            });
         }
 
         // 初始化
