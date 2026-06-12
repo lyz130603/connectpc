@@ -50,7 +50,7 @@
         /* 精确打开文件/文件夹面板 - 竖屏平板专用：往右移动，不重叠 */
         .openItemPanel {
             position: absolute;
-            left: 140px; /* 👈 这里改大了，往右挪了很多 */
+            left: 140px;
             top: 20px;
             width: 180px;
             padding: 10px;
@@ -95,6 +95,7 @@
             line-height:1.4;
         }
 
+        /* 右侧微调方向键 */
         .fine-tune {
             display: grid;
             grid-template-areas:
@@ -148,26 +149,30 @@
             opacity: 0.7;
         }
 
-        #joystickContainer {
-            width: 200px;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            position: relative;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+        /* 八方向主方向键区域 替换原摇杆 */
+        .dir-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(3, 70px);
+            gap: 6px;
+        }
+        .dir-pad button {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.22);
+            color: #fff;
+            font-size: 20px;
             touch-action: none;
         }
-
-        #joystick {
-            width: 80px;
-            height: 80px;
-            background: #ff5555;
-            border-radius: 50%;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            touch-action: none;
+        .dir-pad button:active {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .dir-empty {
+            background: transparent !important;
+            border: none !important;
+            pointer-events: none;
         }
 
         .controlPanel {
@@ -282,13 +287,14 @@
         }
 
         @media (max-width: 375px) {
-            #joystickContainer {
-                width: 160px;
-                height: 160px;
+            .dir-pad {
+                grid-template-columns: repeat(3, 60px);
+                grid-template-rows: repeat(3, 60px);
             }
-            #joystick {
-                width: 64px;
-                height: 64px;
+            .dir-pad button {
+                width: 60px;
+                height: 60px;
+                font-size: 18px;
             }
             .fine-tune {
                 right: 10px;
@@ -390,8 +396,19 @@
             <div class="tip">示例：WeChat(文件夹) / notepad.exe / test.txt</div>
         </div>
 
-        <div id="joystickContainer">
-            <div id="joystick"></div>
+        <!-- 八方向方向键 替代原摇杆 -->
+        <div class="dir-pad">
+            <button onclick="sendMove(-8,-8)">↖</button>
+            <button onclick="sendMove(0,-8)">↑</button>
+            <button onclick="sendMove(8,-8)">↗</button>
+
+            <button onclick="sendMove(-8,0)">←</button>
+            <button class="dir-empty"></button>
+            <button onclick="sendMove(8,0)">→</button>
+
+            <button onclick="sendMove(-8,8)">↙</button>
+            <button onclick="sendMove(0,8)">↓</button>
+            <button onclick="sendMove(8,8)">↘</button>
         </div>
 
         <div class="fine-tune">
@@ -542,13 +559,7 @@
     </div>
 
     <script>
-        const joystickContainer = document.getElementById('joystickContainer');
-        const joystick = document.getElementById('joystick');
         const log = document.getElementById('log');
-
-        let isDragging = false;
-        const radius = 60;
-        const sens = 2;
         let lockedModifiers = new Set();
 
         function setCookie(name, value, days = 365) {
@@ -640,6 +651,11 @@
             }
         }
 
+        // 八方向主移动按键
+        function sendMove(dx, dy) {
+            sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
+        }
+
         // 发送打开文件/文件夹指令
         function sendOpenItem() {
             const name = document.getElementById('openName').value.trim();
@@ -685,51 +701,6 @@
 
         function fineTune(dx, dy) {
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
-        }
-
-        joystickContainer.ontouchstart = e=>{e.preventDefault();isDragging=true;}
-        joystickContainer.ontouchmove = e=>{
-            if(!isDragging)return;
-            e.preventDefault();
-            const t=e.touches[0];
-            const r=joystickContainer.getBoundingClientRect();
-            const x=t.clientX-r.left-r.width/2;
-            const y=t.clientY-r.top-r.height/2;
-            const dist=Math.hypot(x,y);
-            let dx=x,dy=y;
-            if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
-            joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            sendCommand({
-                type:'mouse_move',
-                deltaX:Math.round(dx*sens),
-                deltaY:Math.round(dy*sens)
-            });
-        }
-        joystickContainer.ontouchend = ()=>{
-            isDragging=false;
-            joystick.style.transform='translate(-50%,-50%)';
-        }
-        joystickContainer.ontouchcancel=joystickContainer.ontouchend;
-
-        joystickContainer.onmousedown=()=>isDragging=true;
-        document.onmousemove=e=>{
-            if(!isDragging)return;
-            const r=joystickContainer.getBoundingClientRect();
-            const x=e.clientX-r.left-r.width/2;
-            const y=e.clientY-r.top-r.height/2;
-            const dist=Math.hypot(x,y);
-            let dx=x,dy=y;
-            if(dist>radius){dx=x/dist*radius;dy=y/dist*radius;}
-            joystick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            sendCommand({
-                type:'mouse_move',
-                deltaX:Math.round(dx*sens),
-                deltaY:Math.round(dy*sens)
-            });
-        }
-        document.onmouseup=()=>{
-            isDragging=false;
-            joystick.style.transform='translate(-50%,-50%)';
         }
 
         function toggleModifier(key, btnEl) {
