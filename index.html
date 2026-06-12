@@ -396,21 +396,22 @@
             <div class="tip">示例：WeChat(文件夹) / notepad.exe / test.txt</div>
         </div>
 
-        <!-- 八方向方向键 替代原摇杆 -->
+        <!-- 八方向方向键 替代原摇杆（大幅移动） -->
         <div class="dir-pad">
-            <button onclick="sendMove(-8,-8)">↖</button>
-            <button onclick="sendMove(0,-8)">↑</button>
-            <button onclick="sendMove(8,-8)">↗</button>
+            <button onclick="sendMove(-16,-16)">↖</button>
+            <button onclick="sendMove(0,-16)">↑</button>
+            <button onclick="sendMove(16,-16)">↗</button>
 
-            <button onclick="sendMove(-8,0)">←</button>
+            <button onclick="sendMove(-16,0)">←</button>
             <button class="dir-empty"></button>
-            <button onclick="sendMove(8,0)">→</button>
+            <button onclick="sendMove(16,0)">→</button>
 
-            <button onclick="sendMove(-8,8)">↙</button>
-            <button onclick="sendMove(0,8)">↓</button>
-            <button onclick="sendMove(8,8)">↘</button>
+            <button onclick="sendMove(-16,16)">↙</button>
+            <button onclick="sendMove(0,16)">↓</button>
+            <button onclick="sendMove(16,16)">↘</button>
         </div>
 
+        <!-- 右侧精细微调（小幅移动，保持5像素） -->
         <div class="fine-tune">
             <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
             <button class="btn-left" onclick="fineTune(-5,0)">←</button>
@@ -651,7 +652,7 @@
             }
         }
 
-        // 八方向主移动按键
+        // 八方向主移动按键（大步长）
         function sendMove(dx, dy) {
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
         }
@@ -699,6 +700,7 @@
             });
         }
 
+        // 右侧微调按键（小步长，精细定位）
         function fineTune(dx, dy) {
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
         }
