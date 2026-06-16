@@ -398,25 +398,25 @@
 
         <!-- 八方向方向键 替代原摇杆（大幅移动） -->
         <div class="dir-pad">
-            <button onclick="sendMove(-16,-16)">↖</button>
-            <button onclick="sendMove(0,-16)">↑</button>
-            <button onclick="sendMove(16,-16)">↗</button>
+            <button class="move-btn" data-dx="-60" data-dy="-60">↖</button>
+            <button class="move-btn" data-dx="0" data-dy="-60">↑</button>
+            <button class="move-btn" data-dx="60" data-dy="-60">↗</button>
 
-            <button onclick="sendMove(-16,0)">←</button>
+            <button class="move-btn" data-dx="-60" data-dy="0">←</button>
             <button class="dir-empty"></button>
-            <button onclick="sendMove(16,0)">→</button>
+            <button class="move-btn" data-dx="60" data-dy="0">→</button>
 
-            <button onclick="sendMove(-16,16)">↙</button>
-            <button onclick="sendMove(0,16)">↓</button>
-            <button onclick="sendMove(16,16)">↘</button>
+            <button class="move-btn" data-dx="-60" data-dy="60">↙</button>
+            <button class="move-btn" data-dx="0" data-dy="60">↓</button>
+            <button class="move-btn" data-dx="60" data-dy="60">↘</button>
         </div>
 
         <!-- 右侧精细微调（小幅移动，保持5像素） -->
         <div class="fine-tune">
-            <button class="btn-up" onclick="fineTune(0,-5)">↑</button>
-            <button class="btn-left" onclick="fineTune(-5,0)">←</button>
-            <button class="btn-down" onclick="fineTune(0,5)">↓</button>
-            <button class="btn-right" onclick="fineTune(5,0)">→</button>
+            <button class="tune-btn btn-up" data-dx="0" data-dy="-5">↑</button>
+            <button class="tune-btn btn-left" data-dx="-5" data-dy="0">←</button>
+            <button class="tune-btn btn-down" data-dx="0" data-dy="5">↓</button>
+            <button class="tune-btn btn-right" data-dx="5" data-dy="0">→</button>
         </div>
 
         <div class="sysBtns">
@@ -562,6 +562,10 @@
     <script>
         const log = document.getElementById('log');
         let lockedModifiers = new Set();
+        // 长按定时器存储
+        let moveInterval = null;
+        let tuneInterval = null;
+        const MOVE_INTERVAL_MS = 80; // 长按发送间隔，数值越小移动越快
 
         function setCookie(name, value, days = 365) {
             const d = new Date();
@@ -629,7 +633,8 @@
             if(!validateConfig(c))return;
 
             if(cmd.type === 'mouse_move'){
-                addLog(`鼠标移动: X=${cmd.deltaX}, Y=${cmd.deltaY}`);
+                // 去掉频繁日志，避免刷屏
+                // addLog(`鼠标移动: X=${cmd.deltaX}, Y=${cmd.deltaY}`);
             }
 
             cmd.timestamp = Date.now();
@@ -705,6 +710,49 @@
             sendCommand({ type: 'mouse_move', deltaX: dx, deltaY: dy });
         }
 
+        // ===================== 长按连续移动逻辑 =====================
+        function bindLongPress(btnSelector, moveFn) {
+            const btns = document.querySelectorAll(btnSelector);
+            btns.forEach(btn => {
+                const dx = Number(btn.dataset.dx);
+                const dy = Number(btn.dataset.dy);
+
+                // 按下开始持续发送
+                const start = () => {
+                    // 先停止其他定时器防止冲突
+                    stopAllInterval();
+                    moveFn(dx, dy);
+                    if(moveFn === sendMove) {
+                        moveInterval = setInterval(()=>sendMove(dx, dy), MOVE_INTERVAL_MS);
+                    } else {
+                        tuneInterval = setInterval(()=>fineTune(dx, dy), MOVE_INTERVAL_MS);
+                    }
+                };
+                // 松手/移出停止
+                const stop = () => {
+                    stopAllInterval();
+                };
+
+                btn.addEventListener('mousedown', start);
+                btn.addEventListener('mouseup', stop);
+                btn.addEventListener('mouseleave', stop);
+                // 移动端触摸事件
+                btn.addEventListener('touchstart', (e)=>{
+                    e.preventDefault();
+                    start();
+                });
+                btn.addEventListener('touchend', stop);
+                btn.addEventListener('touchcancel', stop);
+            })
+        }
+        // 清除所有移动定时器
+        function stopAllInterval() {
+            if(moveInterval) clearInterval(moveInterval);
+            if(tuneInterval) clearInterval(tuneInterval);
+            moveInterval = null;
+            tuneInterval = null;
+        }
+
         function toggleModifier(key, btnEl) {
             if (lockedModifiers.has(key)) {
                 lockedModifiers.delete(key);
@@ -755,7 +803,10 @@
             giteeRepo.onblur=saveConfig;
             giteePath.onblur=saveConfig;
             giteeToken.onblur=saveConfig;
-            addLog('控制器就绪','success');
+            // 绑定长按事件
+            bindLongPress('.move-btn', sendMove);
+            bindLongPress('.tune-btn', fineTune);
+            addLog('控制器就绪，长按方向键可持续移动','success');
         }
         init();
     </script>
